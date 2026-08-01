@@ -5,7 +5,7 @@ after sample-set evaluation rather than silently becoming permanent behavior.
 
 | Decision | Current choice | Why / follow-up |
 |---|---|---|
-| Default provider | `auto`: OpenAI if key is set, otherwise Ollama | Allows judge key injection; force `rules` in deterministic tests. |
+| Default provider | `auto`: OpenAI if key is set, otherwise Ollama | No rule-based fallback; provider preflight is mandatory. |
 | Local generation/vision model | `qwen2.5vl:3b` | Tested at ~3 GB active GPU. Evaluate JSON reliability on samples. |
 | Audio model | faster-whisper `tiny`, CPU `int8` | Small and verified; compare `base` only if transcription quality limits routing. |
 | Image path | OCR first | Vision understanding is not yet passed to Ollama; add after measuring OCR misses. |

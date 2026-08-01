@@ -1,5 +1,6 @@
 """Pure, auditable feature extraction separated from routing policy."""
 import re
+from datetime import datetime
 from typing import Dict, List
 
 from .models import CaseFile
@@ -32,8 +33,6 @@ def extract(case: CaseFile) -> Dict[str, List[str]]:
     if matches(r"\b(today|tonight)\b", text) and matches(r"\b(leave|arrive|deliver|pickup|meeting|bus|schedule|before|by)\b", text):
         priority.append("same-day operational timing")
     relationship = case.business_history
-    if relationship.get("activity_count_180d") and int(relationship["activity_count_180d"] or 0) > 0:
-        priority.append("active business relationship")
     if matches(PROMOTION_PATTERNS, text):
         noise.append("promotional wording")
         if relationship.get("allows_promotions") == "0" or relationship.get("promotions_opted_out_at"):
