@@ -2,6 +2,7 @@ import unittest
 
 from code.models import CaseFile, Message, Prediction
 from code.output_writer import validate
+from code.retrieval import retrieve
 from code.router import deterministic_route
 
 
@@ -32,6 +33,13 @@ class RouterTests(unittest.TestCase):
     def test_output_contract_accepts_none_evidence(self):
         prediction = Prediction("incoming_1", "digest", "personal", "Can wait.", .6, [])
         validate([prediction], ["incoming_1"], [])
+
+    def test_unrelated_history_is_not_cited_as_evidence(self):
+        historic = Message("historic_1", "u_1", "personal", None, None, None,
+                           "2026-07-01", "Completely unrelated weather chat.", None, None, 0)
+        from code.models import HistoryItem
+        result = retrieve(case("Payment is due today."), [HistoryItem(historic)], 3)
+        self.assertEqual(result, [])
 
 
 if __name__ == "__main__":

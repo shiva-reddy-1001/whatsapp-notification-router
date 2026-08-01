@@ -88,8 +88,9 @@ def deterministic_route(case: CaseFile) -> Prediction:
                           0.78, evidence_ids)
     urgent = bool(case.priority_signals) and kind in {"urgent", "event", "payment", "personal", "business_update"}
     if urgent and "recipient muted this group" not in case.noise_signals:
+        signal = case.priority_signals[0]
         return Prediction(case.message.message_id, "notify", kind,
-                          "Notified because the message contains a time-sensitive, recipient-relevant update.",
+                          "Notified because it has %s and needs prompt attention." % signal,
                           0.80, evidence_ids)
     if kind == "promotion":
         return Prediction(case.message.message_id, "digest", kind,

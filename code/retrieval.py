@@ -42,7 +42,9 @@ def retrieve(case: CaseFile, candidates: List[HistoryItem], limit: int) -> List[
         event_outcome = _outcome(item.event)
         if event_outcome in {"reported", "muted_after", "dismissed", "replied"}:
             score += 0.08
-        if score < 0.32:
+        # Do not manufacture evidence: a loosely related message from the same
+        # user is not useful support for a routing decision.
+        if score < 0.50 or (not related and _similarity(case.content, historic.message_text) < 0.55):
             continue
         rationale = "same conversation context" if related else "similar prior content"
         ranked.append(RetrievedEvidence(historic.message_id, historic.message_text[:240],
