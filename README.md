@@ -111,6 +111,8 @@ the router marks the media extraction as unavailable and lowers confidence.
 
 ### Architecture and operating notes
 
+- [ARCHITECTURE.md](./ARCHITECTURE.md) provides the executable system diagrams
+  and operational flow.
 - [.design.md](./.design.md) contains the low-level design and execution plan.
 - [DECISIONS.md](./DECISIONS.md) records assumptions to revisit after evaluation.
 - `code/output_writer.py` is the final schema guard: it rejects missing,
