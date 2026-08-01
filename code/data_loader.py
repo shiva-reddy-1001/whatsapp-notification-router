@@ -29,9 +29,10 @@ def as_message(row: Dict[str, str]) -> Message:
 
 
 class Dataset:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, messages_path: Optional[Path] = None):
         self.root = root
-        self.messages = [as_message(row) for row in read_csv(root / "messages.csv")]
+        self.messages_path = messages_path or root / "messages.csv"
+        self.messages = [as_message(row) for row in read_csv(self.messages_path)]
         self.users = self._by_key("users.csv", "user_id")
         self.groups = self._by_key("groups.csv", "group_id")
         self.memberships = self._by_key("group_members.csv", ("group_id", "user_id"))

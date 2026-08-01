@@ -34,7 +34,7 @@ def main() -> int:
     if args.check_config:
         print("provider=%s; %s" % (classifier.name, classifier.check()))
         return 0
-    dataset = Dataset(settings.dataset_dir)
+    dataset = Dataset(settings.dataset_dir, Path(args.input) if args.input else None)
     media = MediaProcessor(settings)
     predictions = []
     for number, message in enumerate(dataset.messages, start=1):

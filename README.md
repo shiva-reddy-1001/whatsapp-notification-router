@@ -93,6 +93,9 @@ ROUTER_LLM_PROVIDER=rules .venv/bin/python -m code.main \
 # Score the chosen route against solved examples.
 ROUTER_LLM_PROVIDER=rules .venv/bin/python -m code.evaluation.main \
   --dataset-dir dataset --provider rules
+
+# Fast deterministic unit tests.
+PYTHONPYCACHEPREFIX=/tmp/router-pycache .venv/bin/python -m unittest discover -s code/tests
 ```
 
 Copy `.env.example` to an ignored `.env` only for local development. A judge
