@@ -1,5 +1,8 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
+from code.cache import SQLiteCache
 from code.models import CaseFile, Message, Prediction
 from code.output_writer import validate
 from code.retrieval import retrieve
@@ -40,6 +43,13 @@ class RouterTests(unittest.TestCase):
         from code.models import HistoryItem
         result = retrieve(case("Payment is due today."), [HistoryItem(historic)], 3)
         self.assertEqual(result, [])
+
+    def test_sqlite_cache_persists_json_values(self):
+        with TemporaryDirectory() as directory:
+            cache = SQLiteCache(Path(directory) / "router.sqlite")
+            cache.put("media", "key", {"text": "hello", "quality": .7})
+            self.assertEqual(cache.get("media", "key"), {"text": "hello", "quality": .7})
+            cache.close()
 
 
 if __name__ == "__main__":

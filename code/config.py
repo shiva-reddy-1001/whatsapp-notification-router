@@ -29,6 +29,7 @@ class Settings:
     seed: int
     whisper_model: str
     whisper_compute_type: str
+    cache_path: Path
 
     @classmethod
     def from_environment(cls, dataset_dir: Optional[str] = None,
@@ -54,6 +55,7 @@ class Settings:
             seed=int(_env("ROUTER_SEED", "42")),
             whisper_model=_env("ROUTER_WHISPER_MODEL", "tiny"),
             whisper_compute_type=_env("ROUTER_WHISPER_COMPUTE_TYPE", "int8"),
+            cache_path=Path(_env("ROUTER_CACHE_PATH", ".router-cache/router.sqlite")),
         )
 
     def resolved_provider(self) -> str:
@@ -61,4 +63,3 @@ class Settings:
         if self.provider != "auto":
             return self.provider
         return "openai" if _env("OPENAI_API_KEY") else "ollama"
-

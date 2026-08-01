@@ -5,6 +5,7 @@
 
 # Python environments and generated files
 .venv/
+.router-cache/
 __pycache__/
 *.py[cod]
 

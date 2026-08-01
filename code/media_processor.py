@@ -3,25 +3,36 @@ from pathlib import Path
 from typing import Tuple
 
 from .config import Settings
+from .cache import SQLiteCache
 
 
 class MediaProcessor:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, cache: SQLiteCache = None):
         self.settings = settings
+        self.cache = cache
         self._whisper = None
 
     def extract(self, media_type: str, path: Path) -> Tuple[str, float]:
         if not path or not path.exists() or self.settings.media_mode == "off":
             return "", 0.0
+        cache_key = "%s:%s:%s:%s" % (media_type, path, path.stat().st_mtime_ns,
+                                      self.settings.whisper_model if media_type == "voice" else "ocr-v1")
+        cached = self.cache.get("media", cache_key) if self.cache else None
+        if cached:
+            return cached["text"], cached["quality"]
         try:
             if media_type == "image":
-                return self._image_text(path)
-            if media_type == "voice":
-                return self._voice_text(path)
+                result = self._image_text(path)
+            elif media_type == "voice":
+                result = self._voice_text(path)
+            else:
+                result = ("", 0.0)
         except Exception:
             # The decision layer receives low media quality instead of a fake claim.
-            return "", 0.0
-        return "", 0.0
+            result = ("", 0.0)
+        if self.cache:
+            self.cache.put("media", cache_key, {"text": result[0], "quality": result[1]})
+        return result
 
     def _image_text(self, path: Path) -> Tuple[str, float]:
         try:

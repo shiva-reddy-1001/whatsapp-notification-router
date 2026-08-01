@@ -1,55 +1,16 @@
 """Safety-first deterministic routing and structured-case helpers."""
 import re
-from typing import List
-
+from .features import PAYMENT_PATTERNS, PROMOTION_PATTERNS, URGENT_PATTERNS, apply, matches
 from .models import CaseFile, Prediction
-
-SCAM_PATTERNS = (
-    r"\b(otp|one.time password|pin|password|cvv|login code)\b.*\b(share|send|enter|verify|confirm|reply|provide)\b",
-    r"\b(reply|send|share|confirm|provide)\b.*\b(otp|one.time password|pin|password|cvv|login code)\b",
-    r"\b(pay|payment|fee|refund|reward)\b.*\b(otp|link|verify|urgent)\b",
-    r"\b(account|bank|package|delivery)\b.*\b(blocked|suspended|release|verify)\b",
-)
-URGENT_PATTERNS = r"\b(urgent|emergency|immediately|right now|eod|deadline|last[- ]minute|within \d+|\d+\s*(?:min|mins|minutes|hours?|hrs?))\b"
-PROMOTION_PATTERNS = r"\b(sale|offer|discount|coupon|cashback|buy now|limited offer|% off)\b"
-PAYMENT_PATTERNS = r"\b(payment|invoice|bill|due|receipt|transaction|refund)\b"
 EVENT_PATTERNS = r"\b(meeting|bus|school|event|schedule|maintenance|water|plumber|class|appointment|prescription|pickup)\b"
 
 
 def _contains(pattern: str, text: str) -> bool:
-    return bool(re.search(pattern, text, flags=re.IGNORECASE | re.DOTALL))
+    return matches(pattern, text)
 
 
 def enrich_signals(case: CaseFile) -> None:
-    text = case.content.lower()
-    message = case.message
-    business = case.business
-    relationship = case.business_history
-    if any(_contains(pattern, text) for pattern in SCAM_PATTERNS):
-        case.risk_signals.append("credential or pressured-payment language")
-    if business and business.get("verified") == "1" and _contains(PAYMENT_PATTERNS, text):
-        official = business.get("official_domain", "").lower()
-        used = business.get("domain_used_by_sender", "").lower()
-        if official and used and official != used:
-            case.risk_signals.append("business domain mismatch")
-    if message.forwarded_count >= 5:
-        case.noise_signals.append("high forwarding count")
-    if _contains(URGENT_PATTERNS, text):
-        case.priority_signals.append("explicit time-sensitive language")
-    if message.conversation_type == "group" and case.membership.get("group_muted_by_user") == "1":
-        case.noise_signals.append("recipient muted this group")
-    if message.user_id.lower() in text or "@" + message.user_id.lower() in text:
-        case.priority_signals.append("direct mention")
-    if _contains(r"\b(today|tonight)\b", text) and _contains(r"\b(leave|arrive|deliver|pickup|meeting|bus|schedule|before|by)\b", text):
-        case.priority_signals.append("same-day operational timing")
-    if _contains(PROMOTION_PATTERNS, text):
-        case.noise_signals.append("promotional wording")
-        if relationship.get("allows_promotions") == "0" or relationship.get("promotions_opted_out_at"):
-            case.noise_signals.append("promotion opt-out or no consent")
-    if relationship.get("activity_count_180d") and int(relationship["activity_count_180d"] or 0) > 0:
-        case.priority_signals.append("active business relationship")
-    if int(case.notification_summary.get("notifications_dismissed", "0") or 0) >= 5:
-        case.noise_signals.append("high notification fatigue")
+    apply(case)
 
 
 def _message_type(case: CaseFile) -> str:

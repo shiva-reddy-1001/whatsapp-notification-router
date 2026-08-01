@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from code.config import Settings
+from code.cache import SQLiteCache
 from code.data_loader import Dataset
 from code.media_processor import MediaProcessor
 from code.providers import Classifier
@@ -30,12 +31,13 @@ def main() -> int:
                         format="%(levelname)s %(message)s")
     settings = Settings.from_environment(args.dataset_dir, args.output, args.provider)
     random.seed(settings.seed)
-    classifier = Classifier(settings)
+    cache = SQLiteCache(settings.cache_path)
+    classifier = Classifier(settings, cache)
     if args.check_config:
         print("provider=%s; %s" % (classifier.name, classifier.check()))
         return 0
     dataset = Dataset(settings.dataset_dir, Path(args.input) if args.input else None)
-    media = MediaProcessor(settings)
+    media = MediaProcessor(settings, cache)
     predictions = []
     for number, message in enumerate(dataset.messages, start=1):
         extracted, quality = media.extract(message.media_type or "", dataset.media_path(message)) \
@@ -49,6 +51,7 @@ def main() -> int:
     write(settings.output_path, predictions, [item.message_id for item in dataset.messages],
           [item.message.message_id for item in dataset.history])
     logging.info("wrote %d valid predictions to %s", len(predictions), settings.output_path)
+    cache.close()
     return 0
 
 
