@@ -3,17 +3,17 @@
 # configured providers, retrieval, and multimodal processing when available.
 
 # Configuration and remote LLM provider
-python-dotenv>=1.0.1,<2.0
-openai>=1.30.0,<2.0
+python-dotenv==1.2.1
+openai==1.109.1
 
 # Local Ollama provider
-ollama>=0.2.1,<1.0
+ollama==0.6.2
 
 # Deterministic similarity retrieval and image/OCR extraction
-rapidfuzz>=3.6.2,<4.0
-Pillow>=10.3.0,<12.0
-pytesseract>=0.3.10,<1.0
+rapidfuzz==3.13.0
+Pillow==11.3.0
+pytesseract==0.3.13
 
 # Local voice-note transcription. The application must gracefully fall back
 # when this optional capability or its model files are unavailable.
-faster-whisper>=1.0.3,<2.0
+faster-whisper==1.2.1

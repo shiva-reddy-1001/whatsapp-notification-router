@@ -16,10 +16,10 @@ from code.output_writer import write
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Personalized WhatsApp notification router")
-    parser.add_argument("--input", help="messages.csv path; must be inside the dataset directory")
+    parser.add_argument("--input", help="must resolve to <dataset-dir>/messages.csv")
     parser.add_argument("--dataset-dir", help="directory containing participant-facing CSV files")
     parser.add_argument("--output", help="destination output.csv")
-    parser.add_argument("--provider", choices=["auto", "openai", "ollama", "rules"])
+    parser.add_argument("--provider", choices=["auto", "openai", "ollama"])
     parser.add_argument("--check-config", action="store_true", help="validate selected provider without routing")
     parser.add_argument("--verbose", action="store_true")
     return parser.parse_args()
@@ -35,8 +35,14 @@ def main() -> int:
     classifier = Classifier(settings, cache)
     if args.check_config:
         print("provider=%s; %s" % (classifier.name, classifier.check()))
+        cache.close()
         return 0
-    dataset = Dataset(settings.dataset_dir, Path(args.input) if args.input else None)
+    input_path = (Path(args.input) if args.input else settings.dataset_dir / "messages.csv").resolve()
+    if input_path != (settings.dataset_dir / "messages.csv").resolve():
+        cache.close()
+        raise ValueError("--input must be the participant-facing dataset/messages.csv file")
+    classifier.check()
+    dataset = Dataset(settings.dataset_dir, input_path)
     media = MediaProcessor(settings, cache)
     predictions = []
     for number, message in enumerate(dataset.messages, start=1):
@@ -48,10 +54,12 @@ def main() -> int:
         predictions.append(classifier.classify(case))
         if number % 25 == 0 or number == len(dataset.messages):
             logging.info("routed %d/%d messages", number, len(dataset.messages))
-    write(settings.output_path, predictions, [item.message_id for item in dataset.messages],
-          [item.message.message_id for item in dataset.history])
-    logging.info("wrote %d valid predictions to %s", len(predictions), settings.output_path)
-    cache.close()
+    try:
+        write(settings.output_path, predictions, [item.message_id for item in dataset.messages],
+              [item.message.message_id for item in dataset.history])
+        logging.info("wrote %d valid predictions to %s", len(predictions), settings.output_path)
+    finally:
+        cache.close()
     return 0
 
 

@@ -25,18 +25,17 @@ flowchart LR
     D <--> E[("SQLite cache")]
     D --> F["Feature extractor"]
     F --> G["History retrieval"]
-    G --> H["Safety-first deterministic router"]
-    H -->|"clear decision"| J["Prediction"]
-    H -->|"ambiguous decision"| I["Structured provider classifier"]
+    G --> H["Feature and policy facts"]
+    H --> I["Structured provider classifier"]
     I <--> E
     I --> J
     J --> K["Output contract validator"]
     K --> L["dataset/output.csv"]
 ```
 
-The deterministic router is the safety boundary. It resolves high-confidence
-scam, opt-out promotion, urgent, and noise cases before any model call. The
-provider is reserved for ambiguous, lower-confidence decisions.
+The provider consumes explicit safety, urgency, relationship, and noise facts
+in a versioned case file. Schema validation is mandatory; an unavailable
+provider fails before processing rather than silently changing policy.
 
 ## Component ownership
 
@@ -46,9 +45,8 @@ provider is reserved for ambiguous, lower-confidence decisions.
 | `media_processor.py` | OCR image text and transcribe voice notes | Cached text and quality |
 | `features.py` | Produce risk, priority, and noise/fatigue facts | Auditable case facts |
 | `retrieval.py` | Select relevant prior messages and interaction outcomes | Evidence IDs and rationale |
-| `router.py` | Apply deterministic safety and routing policy | Clear-case predictions |
 | `prompting.py` | Define the versioned case-file prompt contract | `router-casefile-v2` |
-| `providers.py` | Call OpenAI or Ollama and validate structured JSON | Cached ambiguous decisions |
+| `providers.py` | Call OpenAI or Ollama and validate structured JSON | Cached predictions |
 | `output_writer.py` | Enforce the evaluator’s output contract | `output.csv` |
 
 ## Case-file assembly
@@ -75,31 +73,25 @@ flowchart TD
 The `CaseFile` is the only object passed to a classifier. This keeps CSV join
 logic, media extraction, and model prompting independent and testable.
 
-## Decision policy
+## Classification policy
 
 ```mermaid
 flowchart TD
-    S["CaseFile with features and evidence"] --> A{"Safety risk?"}
-    A -->|"yes"| M1["mute / scam"]
-    A -->|"no"| B{"Promotion without consent?"}
-    B -->|"yes"| M2["mute / promotion"]
-    B -->|"no"| C{"Clear urgency plus relevance?"}
-    C -->|"yes"| N["notify"]
-    C -->|"no"| D{"Clear low-value or muted-group noise?"}
-    D -->|"yes"| G["mute or digest"]
-    D -->|"no"| P["Provider classification or conservative digest"]
+    S["CaseFile with features and evidence"] --> P["Provider classification"]
+    P --> V{"Allowed labels, evidence, confidence?"}
+    V -->|"yes"| O["Prediction"]
+    V -->|"no"| E["Retry once, then fail run"]
 ```
 
-No model output may override a high-severity safety decision. A model result is
-also rejected if its action/type is outside the allowed vocabulary, its
-confidence is outside `[0, 1]`, or it cites an ID that retrieval did not supply.
+The prompt supplies safety facts but the provider owns the action decision. A
+model result is rejected if its action/type is outside the allowed vocabulary,
+its confidence is outside `[0, 1]`, or it cites an ID retrieval did not supply.
 
 ## Provider and fallback modes
 
 ```mermaid
 flowchart LR
     C["Configuration"] --> P{"ROUTER_LLM_PROVIDER"}
-    P -->|"rules"| R["Deterministic router"]
     P -->|"openai"| O["OpenAI adapter"]
     P -->|"ollama"| L["Ollama adapter"]
     P -->|"auto with OPENAI_API_KEY"| O
@@ -107,12 +99,12 @@ flowchart LR
     O --> V["JSON validation"]
     L --> V
     V -->|"valid"| OUT["Prediction"]
-    V -->|"invalid / unavailable"| R
+    V -->|"invalid"| ERR["Retry once, then fail"]
 ```
 
-`rules` is the deterministic CI and safety fallback. `auto` supports judge
-execution when `OPENAI_API_KEY` is injected, while local development can force
-Ollama without a cloud credential.
+`auto` supports judge execution when `OPENAI_API_KEY` is injected, while local
+development can force Ollama without a cloud credential. Provider preflight is
+required before a run.
 
 ## SQLite cache and resumability
 
@@ -170,16 +162,16 @@ Quality is checked at three levels:
 ## Operational runbook
 
 ```bash
-# Deterministic baseline / CI
-ROUTER_LLM_PROVIDER=rules .venv/bin/python -m code.main \
+# Local Ollama run
+ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.main \
   --dataset-dir dataset --output dataset/output.csv
 
 # Verify a provider before a long run
 .venv/bin/python -m code.main --check-config --provider ollama
 
 # Evaluate against solved examples
-ROUTER_LLM_PROVIDER=rules .venv/bin/python -m code.evaluation.main \
-  --dataset-dir dataset --provider rules
+ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.evaluation.main \
+  --dataset-dir dataset --provider ollama
 ```
 
 ## Current limits and next work

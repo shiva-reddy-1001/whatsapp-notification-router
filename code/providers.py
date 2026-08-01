@@ -1,4 +1,4 @@
-"""Optional LLM adapters. Invalid responses always fall back to deterministic routing."""
+"""Provider adapters with strict structured-output validation."""
 import json
 import re
 import hashlib
@@ -8,7 +8,6 @@ from .config import Settings
 from .cache import SQLiteCache
 from .models import ALLOWED_ACTIONS, ALLOWED_MESSAGE_TYPES, CaseFile, Prediction
 from .prompting import PROMPT_VERSION, build_casefile_prompt
-from .router import deterministic_route
 
 
 def _parse(case: CaseFile, raw: str) -> Optional[Prediction]:
@@ -34,26 +33,25 @@ class Classifier:
         self.cache = cache
 
     def classify(self, case: CaseFile) -> Prediction:
-        # Do not spend a model call on clear safety cases; deterministic output is auditable.
-        fallback = deterministic_route(case)
-        if fallback.confidence >= 0.78 or self.name == "rules":
-            return fallback
         prompt = build_casefile_prompt(case)
         key = hashlib.sha256((self.name + self.settings.openai_model + self.settings.ollama_model + PROMPT_VERSION + prompt).encode()).hexdigest()
         cached = self.cache.get("predictions", key) if self.cache else None
         if cached:
             return Prediction(**cached)
-        try:
-            raw = self._call(prompt)
-            parsed = _parse(case, raw)
-            result = parsed or fallback
-            if self.cache:
-                self.cache.put("predictions", key, {"message_id": result.message_id, "action": result.action,
-                               "message_type": result.message_type, "reason": result.reason,
-                               "confidence": result.confidence, "evidence_message_ids": result.evidence_message_ids})
-            return result
-        except Exception:
-            return fallback
+        last_error = None
+        for _ in range(2):
+            try:
+                result = _parse(case, self._call(prompt))
+                if not result:
+                    raise RuntimeError("provider returned invalid structured classification")
+                if self.cache:
+                    self.cache.put("predictions", key, {"message_id": result.message_id, "action": result.action,
+                                   "message_type": result.message_type, "reason": result.reason,
+                                   "confidence": result.confidence, "evidence_message_ids": result.evidence_message_ids})
+                return result
+            except Exception as error:
+                last_error = error
+        raise RuntimeError("classification failed for %s: %s" % (case.message.message_id, last_error))
 
     def _call(self, prompt: str) -> str:
         if self.name == "openai":
@@ -72,7 +70,6 @@ class Classifier:
         raise RuntimeError("unsupported provider")
 
     def check(self) -> str:
-        if self.name == "rules": return "rules-only mode: ready"
         if self.name == "openai":
             import os
             if not os.getenv("OPENAI_API_KEY"):

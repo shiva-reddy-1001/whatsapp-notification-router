@@ -74,9 +74,9 @@ You may use any language or runtime. Python, JavaScript, and TypeScript are all 
 
 ## Run the reference implementation
 
-The implementation in `code/` is provider-neutral. It always has a
-deterministic rules-only fallback; OpenAI and Ollama are optional enrichment
-paths for ambiguous messages.
+The implementation in `code/` is provider-neutral and requires either OpenAI
+or Ollama. It fails at startup when the selected provider is unavailable rather
+than silently changing the prediction policy.
 
 ```bash
 # One-time local setup (Python 3.9+)
@@ -84,18 +84,22 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 
 # Validate local configuration without writing predictions.
-.venv/bin/python -m code.main --check-config --provider rules
+.venv/bin/python -m code.main --check-config --provider ollama
 
-# Deterministic, reproducible run (recommended baseline and CI path).
-ROUTER_LLM_PROVIDER=rules .venv/bin/python -m code.main \
+# Local Ollama run.
+ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.main \
   --dataset-dir dataset --output dataset/output.csv
 
 # Score the chosen route against solved examples.
-ROUTER_LLM_PROVIDER=rules .venv/bin/python -m code.evaluation.main \
-  --dataset-dir dataset --provider rules
+ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.evaluation.main \
+  --dataset-dir dataset --provider ollama
 
 # Fast deterministic unit tests.
 PYTHONPYCACHEPREFIX=/tmp/router-pycache .venv/bin/python -m unittest discover -s code/tests
+
+# Create the required clean code package (never includes .env, model weights,
+# caches, or dataset files).
+.venv/bin/python scripts/package_submission.py --destination code.zip
 ```
 
 Copy `.env.example` to an ignored `.env` only for local development. A judge

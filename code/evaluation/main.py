@@ -13,7 +13,7 @@ from code.media_processor import MediaProcessor
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-dir", default="dataset")
-    parser.add_argument("--provider", default="rules", choices=["auto", "openai", "ollama", "rules"])
+    parser.add_argument("--provider", default="ollama", choices=["auto", "openai", "ollama"])
     args = parser.parse_args()
     settings = Settings.from_environment(args.dataset_dir, provider=args.provider)
     dataset, classifier, media = Dataset(settings.dataset_dir), Classifier(settings), MediaProcessor(settings)

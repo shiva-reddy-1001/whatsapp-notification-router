@@ -38,8 +38,8 @@ class Settings:
         if load_dotenv:
             load_dotenv(override=False)
         chosen_provider = (provider or _env("ROUTER_LLM_PROVIDER", "auto")).lower()
-        if chosen_provider not in {"auto", "openai", "ollama", "rules"}:
-            raise ValueError("ROUTER_LLM_PROVIDER must be auto, openai, ollama, or rules")
+        if chosen_provider not in {"auto", "openai", "ollama"}:
+            raise ValueError("ROUTER_LLM_PROVIDER must be auto, openai, or ollama")
         data = Path(dataset_dir or _env("ROUTER_DATASET_DIR", "dataset"))
         return cls(
             dataset_dir=data,
@@ -59,7 +59,7 @@ class Settings:
         )
 
     def resolved_provider(self) -> str:
-        """Resolve without making a network call; adapters health-check on use."""
+        """Select a provider; the classifier performs a required startup preflight."""
         if self.provider != "auto":
             return self.provider
         return "openai" if _env("OPENAI_API_KEY") else "ollama"

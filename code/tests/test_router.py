@@ -6,7 +6,7 @@ from code.cache import SQLiteCache
 from code.models import CaseFile, Message, Prediction
 from code.output_writer import validate
 from code.retrieval import retrieve
-from code.router import deterministic_route
+from code.features import extract
 
 
 def case(text, conversation="personal", **overrides):
@@ -19,14 +19,14 @@ def case(text, conversation="personal", **overrides):
 
 
 class RouterTests(unittest.TestCase):
-    def test_credential_request_is_muted_as_scam(self):
-        prediction = deterministic_route(case("Reply with the OTP to keep your account active."))
-        self.assertEqual((prediction.action, prediction.message_type), ("mute", "scam"))
+    def test_credential_request_has_a_scam_feature(self):
+        self.assertIn("credential or pressured-payment language",
+                      extract(case("Reply with the OTP to keep your account active."))["risk"])
 
-    def test_opted_out_promotion_is_muted(self):
-        prediction = deterministic_route(case("Limited sale, 50% off today!", conversation="business",
-                                               business_history={"allows_promotions": "0"}))
-        self.assertEqual((prediction.action, prediction.message_type), ("mute", "promotion"))
+    def test_opted_out_promotion_has_a_consent_feature(self):
+        facts = extract(case("Limited sale, 50% off today!", conversation="business",
+                             business_history={"allows_promotions": "0"}))
+        self.assertIn("promotion opt-out or no consent", facts["noise"])
 
     def test_output_contract_rejects_unknown_evidence(self):
         prediction = Prediction("incoming_1", "digest", "personal", "Can wait.", .6, ["missing"])
