@@ -1,0 +1,19 @@
+# Python 3.9-compatible runtime dependencies for the Message Notification Router.
+# Keep the standard library as the default for CSV I/O; these packages enable
+# configured providers, retrieval, and multimodal processing when available.
+
+# Configuration and remote LLM provider
+python-dotenv>=1.0.1,<2.0
+openai>=1.30.0,<2.0
+
+# Local Ollama provider
+ollama>=0.2.1,<1.0
+
+# Deterministic similarity retrieval and image/OCR extraction
+rapidfuzz>=3.6.2,<4.0
+Pillow>=10.3.0,<12.0
+pytesseract>=0.3.10,<1.0
+
+# Local voice-note transcription. The application must gracefully fall back
+# when this optional capability or its model files are unavailable.
+faster-whisper>=1.0.3,<2.0

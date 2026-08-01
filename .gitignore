@@ -1,0 +1,12 @@
+# Local secrets and machine-specific configuration
+.env
+.env.*
+!.env.example
+
+# Python environments and generated files
+.venv/
+__pycache__/
+*.py[cod]
+
+# Operating-system metadata
+.DS_Store
