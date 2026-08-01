@@ -72,6 +72,49 @@ You may use any language or runtime. Python, JavaScript, and TypeScript are all 
 
 ---
 
+## Run the reference implementation
+
+The implementation in `code/` is provider-neutral. It always has a
+deterministic rules-only fallback; OpenAI and Ollama are optional enrichment
+paths for ambiguous messages.
+
+```bash
+# One-time local setup (Python 3.9+)
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+
+# Validate local configuration without writing predictions.
+.venv/bin/python -m code.main --check-config --provider rules
+
+# Deterministic, reproducible run (recommended baseline and CI path).
+ROUTER_LLM_PROVIDER=rules .venv/bin/python -m code.main \
+  --dataset-dir dataset --output dataset/output.csv
+
+# Score the chosen route against solved examples.
+ROUTER_LLM_PROVIDER=rules .venv/bin/python -m code.evaluation.main \
+  --dataset-dir dataset --provider rules
+```
+
+Copy `.env.example` to an ignored `.env` only for local development. A judge
+runner can inject `OPENAI_API_KEY` and run the normal command with
+`ROUTER_LLM_PROVIDER=auto` or `openai`; no source change is required. For local
+Ollama testing, use `ROUTER_LLM_PROVIDER=ollama` and set
+`OLLAMA_MODEL=qwen2.5vl:3b`.
+
+For media extraction, install `ffmpeg` for audio decoding and `tesseract` for
+image OCR. Voice notes use the locally cached faster-whisper `tiny` model with
+CPU int8 inference by default. Missing media tooling never prevents CSV output:
+the router marks the media extraction as unavailable and lowers confidence.
+
+### Architecture and operating notes
+
+- [.design.md](./.design.md) contains the low-level design and execution plan.
+- [DECISIONS.md](./DECISIONS.md) records assumptions to revisit after evaluation.
+- `code/output_writer.py` is the final schema guard: it rejects missing,
+  duplicate, invalid-label, invalid-confidence, and invalid-evidence rows.
+
+---
+
 ## Requirements
 
 Your solution must:
