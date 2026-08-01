@@ -7,6 +7,7 @@ from code.models import CaseFile, Message, Prediction
 from code.output_writer import validate
 from code.retrieval import retrieve
 from code.features import extract
+from code.providers import _parse
 
 
 def case(text, conversation="personal", **overrides):
@@ -50,6 +51,12 @@ class RouterTests(unittest.TestCase):
             cache.put("media", "key", {"text": "hello", "quality": .7})
             self.assertEqual(cache.get("media", "key"), {"text": "hello", "quality": .7})
             cache.close()
+
+    def test_local_model_ten_point_confidence_is_normalized(self):
+        result = _parse(case("Urgent account warning"),
+                        '{"action":"notify","message_type":"urgent","reason":"Time-sensitive warning.","confidence":9,"evidence_message_ids":[]}')
+        self.assertIsNotNone(result)
+        self.assertEqual(result.confidence, .9)
 
 
 if __name__ == "__main__":

@@ -119,6 +119,8 @@ the router marks the media extraction as unavailable and lowers confidence.
   and operational flow.
 - [.design.md](./.design.md) contains the low-level design and execution plan.
 - [DECISIONS.md](./DECISIONS.md) records assumptions to revisit after evaluation.
+- [BACKLOG.md](./BACKLOG.md) tracks unfinished reliability, multimodal-history,
+  retrieval, and evaluation work.
 - `code/output_writer.py` is the final schema guard: it rejects missing,
   duplicate, invalid-label, invalid-confidence, and invalid-evidence rows.
 

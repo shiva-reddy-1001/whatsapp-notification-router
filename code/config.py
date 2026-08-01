@@ -6,7 +6,7 @@ from typing import Optional
 
 try:
     from dotenv import load_dotenv
-except ImportError:  # The rules-only runner should still start without extras.
+except ImportError:  # Configuration can still report a useful setup error.
     load_dotenv = None
 
 
@@ -30,6 +30,7 @@ class Settings:
     whisper_model: str
     whisper_compute_type: str
     cache_path: Path
+    max_retries: int
 
     @classmethod
     def from_environment(cls, dataset_dir: Optional[str] = None,
@@ -56,6 +57,7 @@ class Settings:
             whisper_model=_env("ROUTER_WHISPER_MODEL", "tiny"),
             whisper_compute_type=_env("ROUTER_WHISPER_COMPUTE_TYPE", "int8"),
             cache_path=Path(_env("ROUTER_CACHE_PATH", ".router-cache/router.sqlite")),
+            max_retries=max(0, min(5, int(_env("ROUTER_MAX_RETRIES", "2")))),
         )
 
     def resolved_provider(self) -> str:

@@ -8,6 +8,7 @@ from code.data_loader import Dataset, as_message, read_csv
 from code.providers import Classifier
 from code.retrieval import retrieve
 from code.media_processor import MediaProcessor
+from code.features import apply as apply_features
 
 
 def main() -> int:
@@ -27,6 +28,7 @@ def main() -> int:
             if message.media_type else ("", 1.0)
         content = "\n".join(piece for piece in [message.message_text, extracted] if piece)
         case = dataset.case_file(message, content, quality)
+        apply_features(case)
         case.evidence = retrieve(case, dataset.history_by_user[message.user_id], settings.max_evidence)
         prediction = classifier.classify(case)
         action_ok += prediction.action == row["action"]

@@ -11,6 +11,7 @@ from code.data_loader import Dataset
 from code.media_processor import MediaProcessor
 from code.providers import Classifier
 from code.retrieval import retrieve
+from code.features import apply as apply_features
 from code.output_writer import write
 
 
@@ -50,6 +51,7 @@ def main() -> int:
             if message.media_type else ("", 1.0)
         content = "\n".join(piece for piece in [message.message_text, extracted] if piece).strip()
         case = dataset.case_file(message, content, quality)
+        apply_features(case)
         case.evidence = retrieve(case, dataset.history_by_user[message.user_id], settings.max_evidence)
         predictions.append(classifier.classify(case))
         if number % 25 == 0 or number == len(dataset.messages):

@@ -45,7 +45,7 @@ provider fails before processing rather than silently changing policy.
 | `media_processor.py` | OCR image text and transcribe voice notes | Cached text and quality |
 | `features.py` | Produce risk, priority, and noise/fatigue facts | Auditable case facts |
 | `retrieval.py` | Select relevant prior messages and interaction outcomes | Evidence IDs and rationale |
-| `prompting.py` | Define the versioned case-file prompt contract | `router-casefile-v2` |
+| `prompting.py` | Define the versioned case-file prompt contract | `router-casefile-v3` |
 | `providers.py` | Call OpenAI or Ollama and validate structured JSON | Cached predictions |
 | `output_writer.py` | Enforce the evaluator’s output contract | `output.csv` |
 
