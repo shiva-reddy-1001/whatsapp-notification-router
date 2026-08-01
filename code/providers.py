@@ -10,6 +10,14 @@ from .models import ALLOWED_ACTIONS, ALLOWED_MESSAGE_TYPES, CaseFile, Prediction
 from .prompting import PROMPT_VERSION, build_casefile_prompt
 
 
+def _cached_prediction(case: CaseFile, cached: dict) -> Prediction:
+    """Reuse the decision content, never another incoming message's identity."""
+    return Prediction(message_id=case.message.message_id,
+                      action=cached["action"], message_type=cached["message_type"],
+                      reason=cached["reason"], confidence=float(cached["confidence"]),
+                      evidence_message_ids=list(cached.get("evidence_message_ids", [])))
+
+
 def _parse(case: CaseFile, raw: str) -> Optional[Prediction]:
     try:
         match = re.search(r"\{.*\}", raw, flags=re.DOTALL)
@@ -51,7 +59,7 @@ class Classifier:
         key = hashlib.sha256((self.name + self.settings.openai_model + self.settings.ollama_model + PROMPT_VERSION + prompt).encode()).hexdigest()
         cached = self.cache.get("predictions", key) if self.cache else None
         if cached:
-            return Prediction(**cached)
+            return _cached_prediction(case, cached)
         last_error = None
         repair = ""
         for attempt in range(self.settings.max_retries + 1):
@@ -61,7 +69,7 @@ class Classifier:
                 if not result:
                     raise RuntimeError("provider returned invalid structured classification")
                 if self.cache:
-                    self.cache.put("predictions", key, {"message_id": result.message_id, "action": result.action,
+                    self.cache.put("predictions", key, {"action": result.action,
                                    "message_type": result.message_type, "reason": result.reason,
                                    "confidence": result.confidence, "evidence_message_ids": result.evidence_message_ids})
                 return result

@@ -7,7 +7,7 @@ from code.models import CaseFile, Message, Prediction
 from code.output_writer import validate
 from code.retrieval import retrieve
 from code.features import extract
-from code.providers import _parse
+from code.providers import _cached_prediction, _parse
 
 
 def case(text, conversation="personal", **overrides):
@@ -57,6 +57,12 @@ class RouterTests(unittest.TestCase):
                         '{"action":"notify","message_type":"urgent","reason":"Time-sensitive warning.","confidence":9,"evidence_message_ids":[]}')
         self.assertIsNotNone(result)
         self.assertEqual(result.confidence, .9)
+
+    def test_cached_prediction_uses_current_message_identity(self):
+        current = case("Same content on another incoming row")
+        cached = {"message_id": "stale_id", "action": "digest", "message_type": "personal",
+                  "reason": "Useful later.", "confidence": .7, "evidence_message_ids": []}
+        self.assertEqual(_cached_prediction(current, cached).message_id, "incoming_1")
 
 
 if __name__ == "__main__":

@@ -13,7 +13,12 @@ def validate(predictions: List[Prediction], input_ids: Iterable[str], history_id
     expected = list(input_ids)
     actual = [prediction.message_id for prediction in predictions]
     if actual != expected:
-        raise ValueError("predictions must have exactly one row in messages.csv order")
+        mismatch = next((index for index, pair in enumerate(zip(expected, actual)) if pair[0] != pair[1]),
+                        min(len(expected), len(actual)))
+        wanted = expected[mismatch] if mismatch < len(expected) else "<end>"
+        got = actual[mismatch] if mismatch < len(actual) else "<missing>"
+        raise ValueError("prediction identity/order mismatch at row %d: expected %s, got %s" %
+                         (mismatch + 1, wanted, got))
     known_history = set(history_ids)
     for prediction in predictions:
         if prediction.action not in ALLOWED_ACTIONS or prediction.message_type not in ALLOWED_MESSAGE_TYPES:
