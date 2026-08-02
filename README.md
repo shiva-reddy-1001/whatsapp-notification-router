@@ -86,6 +86,10 @@ python3 -m venv .venv
 # Validate local configuration without writing predictions.
 .venv/bin/python -m code.main --check-config --provider ollama
 
+# One-time historical media + embedding index (also runs automatically).
+ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.index_history \
+  --dataset-dir dataset
+
 # Local Ollama run.
 ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.main \
   --dataset-dir dataset --output dataset/output.csv
@@ -95,7 +99,7 @@ ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.evaluation.main \
   --dataset-dir dataset --provider ollama
 
 # Fast deterministic unit tests.
-PYTHONPYCACHEPREFIX=/tmp/router-pycache .venv/bin/python -m unittest discover -s code/tests
+PYTHONPYCACHEPREFIX=/tmp/router-pycache .venv/bin/python -m unittest discover -v
 
 # Create the required clean code package (never includes .env, model weights,
 # caches, or dataset files).
@@ -109,9 +113,17 @@ Ollama testing, use `ROUTER_LLM_PROVIDER=ollama` and set
 `OLLAMA_MODEL=qwen2.5vl:3b`.
 
 For media extraction, install `ffmpeg` for audio decoding and `tesseract` for
-image OCR. Voice notes use the locally cached faster-whisper `tiny` model with
-CPU int8 inference by default. Missing media tooling never prevents CSV output:
-the router marks the media extraction as unavailable and lowers confidence.
+image OCR. Local mode also sends canonicalized image bytes to
+`qwen2.5vl:3b`; voice notes use faster-whisper `tiny` with CPU int8 inference.
+Pull the compact retrieval model with `ollama pull nomic-embed-text`. Historical
+media analyses and normalized embeddings are stored in the ignored SQLite
+cache, so subsequent runs do not repeat that work.
+
+Retries are bounded and config driven. `ROUTER_RETRY_MODE` accepts `none`,
+`fixed`, or `exponential`; base/max/jitter, request timeout, per-message
+deadline, and the optional whole-run deadline are documented in `.env.example`.
+Only transient connection/timeout/429/5xx and repairable structured-output
+errors retry. Credentials and invalid models fail immediately.
 
 ### Architecture and operating notes
 

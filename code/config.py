@@ -31,6 +31,18 @@ class Settings:
     whisper_compute_type: str
     cache_path: Path
     max_retries: int
+    retry_mode: str
+    retry_base_seconds: float
+    retry_max_seconds: float
+    retry_jitter_seconds: float
+    message_deadline_seconds: float
+    run_deadline_seconds: float
+    vision_provider: str
+    vision_model: str
+    embedding_provider: str
+    openai_embedding_model: str
+    ollama_embedding_model: str
+    embedding_batch_size: int
 
     @classmethod
     def from_environment(cls, dataset_dir: Optional[str] = None,
@@ -42,6 +54,15 @@ class Settings:
         if chosen_provider not in {"auto", "openai", "ollama"}:
             raise ValueError("ROUTER_LLM_PROVIDER must be auto, openai, or ollama")
         data = Path(dataset_dir or _env("ROUTER_DATASET_DIR", "dataset"))
+        retry_mode = _env("ROUTER_RETRY_MODE", "exponential").lower()
+        if retry_mode not in {"none", "fixed", "exponential"}:
+            raise ValueError("ROUTER_RETRY_MODE must be none, fixed, or exponential")
+        vision_provider = _env("ROUTER_VISION_PROVIDER", "auto").lower()
+        if vision_provider not in {"auto", "none", "ollama"}:
+            raise ValueError("ROUTER_VISION_PROVIDER must be auto, none, or ollama")
+        embedding_provider = _env("ROUTER_EMBEDDING_PROVIDER", "auto").lower()
+        if embedding_provider not in {"auto", "none", "openai", "ollama"}:
+            raise ValueError("ROUTER_EMBEDDING_PROVIDER must be auto, none, openai, or ollama")
         return cls(
             dataset_dir=data,
             output_path=Path(output_path or _env("ROUTER_OUTPUT_PATH", str(data / "output.csv"))),
@@ -58,6 +79,18 @@ class Settings:
             whisper_compute_type=_env("ROUTER_WHISPER_COMPUTE_TYPE", "int8"),
             cache_path=Path(_env("ROUTER_CACHE_PATH", ".router-cache/router.sqlite")),
             max_retries=max(0, min(5, int(_env("ROUTER_MAX_RETRIES", "2")))),
+            retry_mode=retry_mode,
+            retry_base_seconds=max(0.0, float(_env("ROUTER_RETRY_BASE_SECONDS", "0.5"))),
+            retry_max_seconds=max(0.0, float(_env("ROUTER_RETRY_MAX_SECONDS", "8"))),
+            retry_jitter_seconds=max(0.0, float(_env("ROUTER_RETRY_JITTER_SECONDS", "0.25"))),
+            message_deadline_seconds=max(1.0, float(_env("ROUTER_MESSAGE_DEADLINE_SECONDS", "180"))),
+            run_deadline_seconds=max(0.0, float(_env("ROUTER_RUN_DEADLINE_SECONDS", "0"))),
+            vision_provider=vision_provider,
+            vision_model=_env("ROUTER_VISION_MODEL", _env("OLLAMA_MODEL", "qwen2.5vl:3b")),
+            embedding_provider=embedding_provider,
+            openai_embedding_model=_env("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
+            ollama_embedding_model=_env("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text"),
+            embedding_batch_size=max(1, min(256, int(_env("ROUTER_EMBEDDING_BATCH_SIZE", "64")))),
         )
 
     def resolved_provider(self) -> str:
@@ -65,3 +98,15 @@ class Settings:
         if self.provider != "auto":
             return self.provider
         return "openai" if _env("OPENAI_API_KEY") else "ollama"
+
+    def resolved_embedding_provider(self) -> str:
+        if self.embedding_provider != "auto":
+            return self.embedding_provider
+        return "openai" if _env("OPENAI_API_KEY") else "ollama"
+
+    def resolved_vision_provider(self) -> str:
+        if self.vision_provider != "auto":
+            return self.vision_provider
+        # Local mode gets Qwen vision automatically. A clean OpenAI judge run
+        # must not acquire an undeclared Ollama dependency; OCR remains active.
+        return "none" if self.resolved_provider() == "openai" else "ollama"

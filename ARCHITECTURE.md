@@ -1,6 +1,6 @@
 # Architecture Guide
 
-This document describes the executable V2 router architecture. It complements
+This document describes the executable V7 router architecture. It complements
 [.design.md](./.design.md), which records the design rationale, and
 [DECISIONS.md](./DECISIONS.md), which tracks decisions still open to tuning.
 
@@ -21,10 +21,14 @@ used as evidence for each decision.
 flowchart LR
     A["Participant CSVs and media"] --> B["Dataset loader"]
     B --> C["Normalized Message and CaseFile"]
-    C --> D["Media processor: OCR / ASR"]
+    C --> D["Media processor: OCR / Qwen vision / ASR"]
     D <--> E[("SQLite cache")]
+    D --> HM["Historical media enrichment"]
+    HM --> X["One-time normalized embeddings"]
+    X <--> E
     D --> F["Feature extractor"]
-    F --> G["History retrieval"]
+    F --> G["Hybrid history retrieval"]
+    X --> G
     G --> H["Feature and policy facts"]
     H --> I["Structured provider classifier"]
     I <--> E
@@ -42,11 +46,14 @@ provider fails before processing rather than silently changing policy.
 | Component | Responsibility | Durable output |
 |---|---|---|
 | `data_loader.py` | Read CSVs, normalize nulls/types, build indexes, create case files | In-memory indexes |
-| `media_processor.py` | OCR image text and transcribe voice notes | Cached text and quality |
+| `media_processor.py` | OCR + Qwen image facts; transcribe voice notes | Cached text and quality |
+| `history_media.py` | Enrich historical messages before indexing | Retrievable media text |
+| `embeddings.py` | Batch/cache normalized OpenAI or Ollama vectors | SQLite vectors |
 | `features.py` | Produce risk, priority, and noise/fatigue facts | Auditable case facts |
-| `retrieval.py` | Select relevant prior messages and interaction outcomes | Evidence IDs and rationale |
+| `retrieval.py` | Hybrid semantic/lexical/context/outcome ranker | Evidence IDs and rationale |
 | `prompting.py` | Define the versioned case-file prompt contract | `router-casefile-v3` |
 | `providers.py` | Call OpenAI or Ollama and validate structured JSON | Cached predictions |
+| `reliability.py` | Typed retries, backoff, jitter, deadlines | Safe error categories |
 | `output_writer.py` | Enforce the evaluator’s output contract | `output.csv` |
 
 ## Case-file assembly
@@ -56,9 +63,11 @@ flowchart TD
     M["Incoming message"] --> T["Native text"]
     M --> X["Media reference"]
     X --> O["Image OCR"]
+    X --> Q["Qwen vision facts"]
     X --> V["Voice transcription"]
     T --> C["Normalized content"]
     O --> C
+    Q --> C
     V --> C
     U["User profile and notification load"] --> CF["CaseFile"]
     G["Group and membership context"] --> CF
@@ -80,7 +89,8 @@ flowchart TD
     S["CaseFile with features and evidence"] --> P["Provider classification"]
     P --> V{"Allowed labels, evidence, confidence?"}
     V -->|"yes"| O["Prediction"]
-    V -->|"no"| E["Retry once, then fail run"]
+    V -->|"repairable"| E["Bounded retry policy"]
+    V -->|"terminal"| Z["Fail run"]
 ```
 
 The prompt supplies safety facts but the provider owns the action decision. A
@@ -99,7 +109,7 @@ flowchart LR
     O --> V["JSON validation"]
     L --> V
     V -->|"valid"| OUT["Prediction"]
-    V -->|"invalid"| ERR["Retry once, then fail"]
+    V -->|"invalid"| ERR["Corrective retry within deadline"]
 ```
 
 `auto` supports judge execution when `OPENAI_API_KEY` is injected, while local
@@ -113,14 +123,21 @@ sequenceDiagram
     participant Run as Router run
     participant Cache as SQLite cache
     participant Media as Media processor
-    participant Model as Provider
+    participant Vision as Qwen/Whisper
+    participant Embed as Embedding provider
+    participant Model as Classifier provider
 
     Run->>Cache: Lookup media key (path, mtime, extractor config)
     alt Media hit
         Cache-->>Run: Cached OCR or ASR result
     else Media miss
-        Run->>Media: Extract text
-        Media-->>Cache: Store text and quality
+        Run->>Vision: Extract OCR/vision/ASR text
+        Vision-->>Cache: Store text and quality
+    end
+    Run->>Cache: Lookup vector (provider, model, version, text hash)
+    alt Vector miss
+        Run->>Embed: Batch missing historical text
+        Embed-->>Cache: Store normalized vectors
     end
     Run->>Cache: Lookup prediction key (provider, model, prompt version, case file)
     alt Prediction hit
@@ -166,6 +183,10 @@ Quality is checked at three levels:
 ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.main \
   --dataset-dir dataset --output dataset/output.csv
 
+# Optional explicit one-time index build (normal runs also ensure it exists)
+ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.index_history \
+  --dataset-dir dataset
+
 # Verify a provider before a long run
 .venv/bin/python -m code.main --check-config --provider ollama
 
@@ -174,10 +195,29 @@ ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.evaluation.main \
   --dataset-dir dataset --provider ollama
 ```
 
+## Reliability flow
+
+```mermaid
+flowchart TD
+    A["Provider operation"] --> B{"Success?"}
+    B -->|"yes"| C["Validate and cache"]
+    B -->|"no"| D{"Transient or repairable?"}
+    D -->|"no: auth/model/permission"| F["Fail immediately"]
+    D -->|"yes: timeout/connection/429/5xx/invalid JSON"| G{"Attempts and deadline remain?"}
+    G -->|"yes"| H["Fixed or exponential delay + jitter"]
+    H --> A
+    G -->|"no"| F
+```
+
+The provider SDKs have internal retries disabled so one policy owns attempt
+counting. Logs contain message IDs, error class, attempt, and delay—never prompt
+content or credentials. `ROUTER_RUN_DEADLINE_SECONDS=0` disables the optional
+whole-run budget.
+
 ## Current limits and next work
 
-- Retrieval is lexical and relationship-aware; add embeddings only after the
-  current evidence audit shows a measurable need.
+- Hybrid weights need labeled evidence-precision calibration; SQLite avoids a
+  vector-service dependency until corpus size demonstrates a need.
 - The cache makes local runs resumable, but the provider is intentionally
   sequential to remain within the local 3–4 GB model budget.
 - Solved-sample type accuracy remains weaker than action accuracy. Prioritize

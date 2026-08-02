@@ -2,12 +2,14 @@
 import json
 import re
 import hashlib
+import logging
 from typing import Optional
 
 from .config import Settings
 from .cache import SQLiteCache
 from .models import ALLOWED_ACTIONS, ALLOWED_MESSAGE_TYPES, CaseFile, Prediction
 from .prompting import PROMPT_VERSION, build_casefile_prompt
+from .reliability import InvalidModelResponse, RetryPolicy, run_with_retry
 
 
 def _cached_prediction(case: CaseFile, cached: dict) -> Prediction:
@@ -60,23 +62,34 @@ class Classifier:
         cached = self.cache.get("predictions", key) if self.cache else None
         if cached:
             return _cached_prediction(case, cached)
-        last_error = None
-        repair = ""
-        for attempt in range(self.settings.max_retries + 1):
-            try:
-                raw = self._call(prompt + repair)
-                result = _parse(case, raw)
-                if not result:
-                    raise RuntimeError("provider returned invalid structured classification")
-                if self.cache:
-                    self.cache.put("predictions", key, {"action": result.action,
-                                   "message_type": result.message_type, "reason": result.reason,
-                                   "confidence": result.confidence, "evidence_message_ids": result.evidence_message_ids})
-                return result
-            except Exception as error:
-                last_error = error
-                repair = "\nYour previous response was invalid. Return exactly the requested JSON schema; confidence must be 0.0 to 1.0."
-        raise RuntimeError("classification failed for %s: %s" % (case.message.message_id, last_error))
+        def operation(attempt: int) -> Prediction:
+            repair = "" if not attempt else (
+                "\nA previous response was invalid. Return exactly the requested JSON schema; "
+                "confidence must be 0.0 to 1.0.")
+            result = _parse(case, self._call(prompt + repair))
+            if not result:
+                raise InvalidModelResponse("provider returned invalid structured classification")
+            return result
+
+        policy = RetryPolicy(self.settings.max_retries, self.settings.retry_mode,
+                             self.settings.retry_base_seconds, self.settings.retry_max_seconds,
+                             self.settings.retry_jitter_seconds,
+                             self.settings.message_deadline_seconds)
+        try:
+            result = run_with_retry(
+                operation, policy,
+                on_retry=lambda number, error, delay: logging.warning(
+                    "retrying message %s attempt=%d category=%s delay=%.2fs",
+                    case.message.message_id, number, type(error).__name__, delay))
+        except Exception as error:
+            raise RuntimeError("classification failed for %s: %s" %
+                               (case.message.message_id, error)) from error
+        if self.cache:
+            self.cache.put("predictions", key, {"action": result.action,
+                           "message_type": result.message_type, "reason": result.reason,
+                           "confidence": result.confidence,
+                           "evidence_message_ids": result.evidence_message_ids})
+        return result
 
     def _call(self, prompt: str) -> str:
         if self.name == "openai":

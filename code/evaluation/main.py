@@ -9,6 +9,9 @@ from code.providers import Classifier
 from code.retrieval import retrieve
 from code.media_processor import MediaProcessor
 from code.features import apply as apply_features
+from code.cache import SQLiteCache
+from code.embeddings import EmbeddingIndex
+from code.history_media import enrich_historical_media
 
 
 def main() -> int:
@@ -17,7 +20,15 @@ def main() -> int:
     parser.add_argument("--provider", default="ollama", choices=["auto", "openai", "ollama"])
     args = parser.parse_args()
     settings = Settings.from_environment(args.dataset_dir, provider=args.provider)
-    dataset, classifier, media = Dataset(settings.dataset_dir), Classifier(settings), MediaProcessor(settings)
+    cache = SQLiteCache(settings.cache_path)
+    dataset = Dataset(settings.dataset_dir)
+    classifier, media = Classifier(settings, cache), MediaProcessor(settings, cache)
+    embeddings = EmbeddingIndex(settings, cache)
+    classifier.check()
+    media.check()
+    embeddings.check()
+    enrich_historical_media(dataset, media)
+    embeddings.prewarm(item.message.message_text for item in dataset.history)
     rows = read_csv(Path(args.dataset_dir) / "sample_messages.csv")
     action_ok = type_ok = 0
     errors = Counter()
@@ -29,7 +40,8 @@ def main() -> int:
         content = "\n".join(piece for piece in [message.message_text, extracted] if piece)
         case = dataset.case_file(message, content, quality)
         apply_features(case)
-        case.evidence = retrieve(case, dataset.history_by_user[message.user_id], settings.max_evidence)
+        case.evidence = retrieve(case, dataset.history_by_user[message.user_id],
+                                 settings.max_evidence, embeddings)
         prediction = classifier.classify(case)
         action_ok += prediction.action == row["action"]
         type_ok += prediction.message_type == row["message_type"]
@@ -50,6 +62,7 @@ def main() -> int:
         print("%s:" % dimension)
         for value, (count, actions, types) in sorted(values.items()):
             print("  %s n=%d action=%.3f type=%.3f" % (value, count, actions / count, types / count))
+    cache.close()
 
 
 if __name__ == "__main__":

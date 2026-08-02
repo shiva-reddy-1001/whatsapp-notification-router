@@ -25,11 +25,16 @@ class SQLiteCache:
         return json.loads(row[0]) if row else None
 
     def put(self, namespace: str, cache_key: str, value: Any) -> None:
-        self.connection.execute("""INSERT INTO cache_entries(namespace, cache_key, value_json, updated_at)
+        self.put_many(namespace, {cache_key: value})
+
+    def put_many(self, namespace: str, entries: dict) -> None:
+        """Persist a model batch in one transaction instead of one commit per vector."""
+        updated_at = datetime.now(timezone.utc).isoformat()
+        self.connection.executemany("""INSERT INTO cache_entries(namespace, cache_key, value_json, updated_at)
             VALUES (?, ?, ?, ?) ON CONFLICT(namespace, cache_key) DO UPDATE SET
             value_json=excluded.value_json, updated_at=excluded.updated_at""",
-                                (namespace, cache_key, json.dumps(value, sort_keys=True),
-                                 datetime.now(timezone.utc).isoformat()))
+                                [(namespace, key, json.dumps(value, sort_keys=True), updated_at)
+                                 for key, value in entries.items()])
         self.connection.commit()
 
     def close(self) -> None:
