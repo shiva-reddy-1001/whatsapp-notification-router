@@ -39,3 +39,8 @@ class SQLiteCache:
 
     def close(self) -> None:
         self.connection.close()
+
+    def clear(self) -> None:
+        """Delete only router-owned cache entries, preserving the database schema."""
+        self.connection.execute("DELETE FROM cache_entries")
+        self.connection.commit()

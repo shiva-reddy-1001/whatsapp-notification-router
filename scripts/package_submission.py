@@ -4,7 +4,8 @@ from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
 INCLUDE = ("code", "README.md", "ARCHITECTURE.md", ".design.md", "DECISIONS.md",
-           "requirements.txt", ".env.example", "problem_statement.md", "scripts")
+           "BACKLOG.md", "SUBMISSION.md", "requirements.txt", ".env.example", "problem_statement.md",
+           "scripts", "tests")
 EXCLUDE_PARTS = {".venv", ".router-cache", "__pycache__", ".git", "dataset", ".env"}
 
 

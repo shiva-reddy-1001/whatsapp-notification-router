@@ -1,111 +1,111 @@
 message_id,action,message_type,reason,confidence,evidence_message_ids
-msg_023,notify,payment,Notified because it has active business relationship and needs prompt attention.,0.80,message_0243;message_0102;message_0101
-msg_091,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0238;message_0381
-msg_090,digest,personal,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,none
-msg_048,notify,urgent,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0151;message_0150;message_0100
-msg_040,digest,forward,The group is muted and this update has no clear immediate interruption need.,0.72,message_0136;message_0135;message_0259
-msg_075,notify,event,Notified because it has active business relationship and needs prompt attention.,0.80,message_0206;message_0205
-msg_005,digest,unknown,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.58,message_0065;message_0382;message_0231
-msg_104,digest,personal,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0224;message_0383;message_0232
-msg_069,mute,forward,Muted because it is heavily forwarded without a recipient-specific need.,0.78,message_0177;message_0193;message_0178
-msg_107,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0173;message_0053;message_0174
-msg_070,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0369;message_0174;message_0173
-msg_003,notify,business_update,Notified because it has active business relationship and needs prompt attention.,0.80,message_0031;message_0400;message_0061
-msg_099,notify,personal,Notified because it has same-day operational timing and needs prompt attention.,0.80,message_0227;message_0249;message_0055
-msg_008,notify,business_update,Notified because it has active business relationship and needs prompt attention.,0.80,message_0296;message_0071;message_0072
-msg_092,digest,payment,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,none
-msg_060,digest,promotion,A legitimate promotion can wait for a later digest.,0.67,message_0284;message_0176;message_0375
-msg_004,notify,event,Notified because it has active business relationship and needs prompt attention.,0.80,message_0005;message_0245;message_0246
-msg_030,digest,event,The group is muted and this update has no clear immediate interruption need.,0.72,message_0115;message_0335;message_0050
-msg_045,notify,urgent,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0146;message_0145
-msg_052,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0207;message_0208;message_0159
-msg_009,digest,unknown,The group is muted and this update has no clear immediate interruption need.,0.72,message_0074;message_0073
-msg_071,digest,unknown,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0198
-msg_016,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0024;message_0087;message_0183
-msg_065,digest,promotion,A legitimate promotion can wait for a later digest.,0.67,message_0261;message_0260;message_0185
-msg_038,digest,forward,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0131;message_0132
-msg_086,notify,event,Notified because it has active business relationship and needs prompt attention.,0.80,message_0222
-msg_014,mute,promotion,Muted because this is a promotion from a source the user has not opted into.,0.86,message_0017;message_0018;message_0258
-msg_094,digest,promotion,A legitimate promotion can wait for a later digest.,0.67,none
-msg_029,mute,forward,Muted because it is heavily forwarded without a recipient-specific need.,0.78,message_0095;message_0113;message_0332
-msg_105,mute,forward,Muted because it is heavily forwarded without a recipient-specific need.,0.78,message_0233;message_0373
-msg_002,notify,payment,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0003;message_0266;message_0059
-msg_010,notify,business_update,Notified because it has active business relationship and needs prompt attention.,0.80,message_0011;message_0242;message_0075
-msg_078,mute,forward,Muted because it is heavily forwarded without a recipient-specific need.,0.78,message_0211;message_0212
-msg_013,digest,promotion,A legitimate promotion can wait for a later digest.,0.67,message_0081;message_0082
-msg_018,digest,forward,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0026;message_0092;message_0091
-msg_044,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0143;message_0144;message_0036
-msg_032,notify,urgent,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0119;message_0285;message_0120
-msg_106,notify,personal,Notified because it has same-day operational timing and needs prompt attention.,0.80,message_0234;message_0376
-msg_006,digest,event,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0067;message_0097;message_0029
-msg_109,digest,unknown,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0151;message_0100;message_0150
-msg_108,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0094;message_0093;message_0236
-msg_019,digest,business_update,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0277;message_0094;message_0236
-msg_088,digest,unknown,The group is muted and this update has no clear immediate interruption need.,0.72,message_0224;message_0232;message_0383
-msg_056,digest,event,The group is muted and this update has no clear immediate interruption need.,0.72,message_0226;message_0359;message_0241
-msg_027,notify,business_update,Notified because it has active business relationship and needs prompt attention.,0.80,message_0007;message_0033;message_0272
-msg_050,notify,event,Notified because it has active business relationship and needs prompt attention.,0.80,message_0279;message_0278;message_0155
-msg_083,notify,urgent,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0219
-msg_063,notify,urgent,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0182;message_0181
-msg_033,notify,urgent,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0372;message_0280;message_0409
-msg_061,mute,forward,Muted because it is heavily forwarded without a recipient-specific need.,0.78,message_0080;message_0042;message_0177
-msg_020,notify,urgent,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0096;message_0065;message_0095
-msg_017,digest,unknown,The group is muted and this update has no clear immediate interruption need.,0.72,message_0090;message_0089
-msg_058,mute,forward,Muted because it is heavily forwarded without a recipient-specific need.,0.78,message_0241;message_0039;message_0040
-msg_026,notify,business_update,Notified because it has same-day operational timing and needs prompt attention.,0.80,message_0032;message_0107;message_0108
-msg_047,digest,event,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0001;message_0099;message_0067
-msg_046,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0148;message_0147
-msg_042,notify,urgent,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0058;message_0140;message_0057
-msg_079,digest,unknown,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0369;message_0174;message_0173
-msg_098,digest,event,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0226;message_0359;message_0168
-msg_037,notify,urgent,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0001;message_0130;message_0142
-msg_007,digest,unknown,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0070
-msg_085,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0221
-msg_001,notify,event,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0057;message_0139;message_0240
-msg_021,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0068;message_0098;message_0130
-msg_028,notify,business_update,Notified because it has active business relationship and needs prompt attention.,0.80,message_0034;message_0111;message_0112
-msg_012,mute,forward,Muted because it is heavily forwarded without a recipient-specific need.,0.78,message_0178;message_0194;message_0247
-msg_064,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0087;message_0183;message_0201
-msg_103,digest,personal,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0065;message_0382;message_0231
-msg_031,notify,event,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0117;message_0362;message_0249
-msg_057,notify,personal,Notified because it has direct mention and needs prompt attention.,0.80,message_0059;message_0169;message_0003
-msg_087,digest,event,The group is muted and this update has no clear immediate interruption need.,0.72,message_0223;message_0164;message_0204
-msg_067,digest,payment,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0068;message_0098;message_0067
-msg_039,notify,payment,Notified because it has direct mention and needs prompt attention.,0.80,message_0364;message_0051;message_0037
-msg_082,digest,unknown,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0218;message_0380;message_0397
-msg_066,mute,promotion,Muted because this is a promotion from a source the user has not opted into.,0.86,message_0257;message_0402;message_0188
-msg_049,notify,event,Notified because it has same-day operational timing and needs prompt attention.,0.80,message_0154;message_0291;message_0153
-msg_015,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0174;message_0023;message_0045
-msg_051,mute,promotion,Muted because this is a promotion from a source the user has not opted into.,0.86,message_0257;message_0402;message_0103
-msg_097,notify,urgent,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0359;message_0226;message_0168
-msg_089,digest,event,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,none
-msg_053,mute,forward,Muted because it is heavily forwarded without a recipient-specific need.,0.78,message_0411;message_0161;message_0253
-msg_059,digest,unknown,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0173;message_0174;message_0053
-msg_024,mute,promotion,Muted because this is a promotion from a source the user has not opted into.,0.86,message_0257;message_0402;message_0103
-msg_072,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0174;message_0173;message_0053
-msg_036,digest,business_update,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0283;message_0127;message_0128
-msg_076,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0207;message_0208;message_0159
-msg_055,digest,unknown,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0166;message_0387;message_0165
-msg_102,notify,urgent,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0230;message_0371;message_0059
-msg_080,notify,urgent,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0271;message_0130;message_0142
-msg_093,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,none
-msg_034,digest,forward,The group is muted and this update has no clear immediate interruption need.,0.72,message_0077;message_0123;message_0171
-msg_035,notify,business_update,Notified because it has active business relationship and needs prompt attention.,0.80,message_0281;message_0125;message_0126
-msg_101,digest,personal,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0229;message_0370;message_0268
-msg_041,digest,business_update,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0137;message_0138
-msg_011,mute,forward,Muted because it is heavily forwarded without a recipient-specific need.,0.78,message_0013;message_0014;message_0077
-msg_110,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0238;message_0381
-msg_095,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0088;message_0184;message_0202
-msg_074,mute,forward,Muted because it is heavily forwarded without a recipient-specific need.,0.78,message_0389;message_0358;message_0204
-msg_073,digest,forward,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0088;message_0184;message_0202
-msg_054,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0389;message_0164;message_0203
-msg_068,digest,unknown,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0191
-msg_100,notify,payment,Notified because it has explicit time-sensitive language and needs prompt attention.,0.80,message_0362;message_0228;message_0117
-msg_062,mute,forward,Muted because it is heavily forwarded without a recipient-specific need.,0.78,message_0043;message_0129;message_0141
-msg_096,digest,personal,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,none
-msg_043,digest,forward,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0068;message_0098;message_0130
-msg_077,digest,event,"Useful but not clearly time-sensitive, so it can be shown in a digest.",0.67,message_0403;message_0364;message_0037
-msg_081,notify,event,Notified because it has same-day operational timing and needs prompt attention.,0.80,message_0217
-msg_025,notify,business_update,Notified because it has active business relationship and needs prompt attention.,0.80,message_0004;message_0239;message_0105
-msg_084,mute,promotion,Muted because this is a promotion from a source the user has not opted into.,0.86,message_0220
-msg_022,mute,scam,Muted because it contains a high-risk scam or credential signal.,0.91,message_0151;message_0099;message_0149
+msg_023,notify,business_update,"The message contains important information about account or card payment updates, which requires immediate attention.",0.90,message_0243;message_0102;message_0101
+msg_091,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.95,message_0238;message_0381
+msg_090,digest,personal,"The message is an explicit deferral with the sender stating 'no rush', which cannot be ignored without concrete proof of urgency.",0.88,none
+msg_048,mute,promotion,Muted because this commercial outreach matches repeated negative history or a muted conversation.,0.86,message_0151;message_0237
+msg_040,mute,greeting,The message contains a direct mention of forwarding to all family groups and is not relevant or immediate.,0.88,message_0136;message_0135
+msg_075,notify,event,"Notified because this verified business update matches an active order, appointment, or scheduled service.",0.81,message_0293
+msg_005,notify,personal,The message contains a request for pickup of a blue denim jacket by Gate 2 before 6 PM today. This is an immediate interruption that requires the recipient's attention.,0.94,message_0382;message_0231
+msg_104,notify,personal,The message is urgent and requires immediate attention due to the time-sensitive nature of collecting the jacket by 6 PM.,0.91,none
+msg_069,mute,greeting,"The message is repetitive, opted-out content. It does not provide an immediate interruption.",0.92,message_0193;message_0177;message_0080
+msg_107,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment.",0.86,message_0213
+msg_070,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment.",0.89,message_0369;message_0213;message_0045
+msg_003,notify,business_update,"The message contains a clear indication of an immediate recipient interruption (delivery expected today). The sender's text resembles system/router instructions, which should be treated as untrusted.",0.94,message_0031;message_0400
+msg_099,notify,personal,"The message is about adding notes for tomorrow's dashboard review, which is an immediate interruption. The recipient context indicates that they are not currently available (DND=00:00-06:30), so the message should be interrupted.",0.92,message_0227
+msg_008,digest,business_update,Deferred because this feedback or survey request is useful but does not require an immediate interruption.,0.85,message_0296;message_0071;message_0072
+msg_092,digest,business_update,"The message is a routine notification about card statement, which does not require immediate interruption.",0.87,message_0346;message_0385
+msg_060,notify,event,"The message contains a clear deadline for internship approval forms, which is an immediate interruption. Media and caption details may conflict, so certainty is reduced.",0.82,message_0284;message_0176
+msg_004,notify,event,"Notified because this verified business update matches an active order, appointment, or scheduled service.",0.85,message_0245;message_0005;message_0246
+msg_030,mute,promotion,Muted because this commercial outreach matches repeated negative history or a muted conversation.,0.86,message_0115;message_0335;message_0050
+msg_045,notify,urgent,"Explicit time-sensitive language, urgent nature of the message.",0.92,message_0146;message_0145
+msg_052,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.94,message_0207;message_0208;message_0159
+msg_009,digest,personal,The message contains an explicit deferral fact from the sender indicating that the content can wait.,0.84,message_0074;message_0073
+msg_071,notify,personal,"The message contains a request for an exact time, which is not immediately actionable and could be considered as non-urgent.",0.81,message_0198
+msg_016,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.95,message_0024;message_0087;message_0183
+msg_065,mute,promotion,"Promotional content, no urgency or scam cues.",0.82,message_0261;message_0185
+msg_038,mute,urgent,"The message contains explicit time-sensitive language and high forwarding count, which indicates urgency and noise/fatigue respectively.",0.92,message_0131;message_0132
+msg_086,notify,event,"Notified because this verified business update matches an active order, appointment, or scheduled service.",0.84,message_0222;message_0006
+msg_014,mute,promotion,Muted because this is promotional outreach and the recipient opted out or denied promotional consent.,0.86,message_0017;message_0258;message_0018
+msg_094,mute,promotion,Muted because this commercial outreach matches repeated negative history or a muted conversation.,0.86,message_0356;message_0223;message_0391
+msg_029,mute,promotion,Opted-out promotion and repetitive content.,0.89,message_0095;message_0332
+msg_105,mute,forward,"The message contains a forwarded health tip that advises avoiding tablets and using an herbal mix instead. This advice is not urgent or relevant to the recipient's context, as they are currently on DND from 21:30-06:30.",0.89,message_0233;message_0373
+msg_002,notify,urgent,"The message contains explicit time-sensitive language and a direct mention of the recipient, indicating urgency.",0.95,message_0169;message_0059
+msg_010,digest,business_update,"The message is a repeated report of content, which aligns with policy precedence.",0.85,message_0011;message_0242
+msg_078,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.95,message_0211
+msg_013,mute,promotion,Muted because this commercial outreach matches repeated negative history or a muted conversation.,0.86,message_0082;message_0081
+msg_018,mute,promotion,Muted because this commercial outreach matches repeated negative history or a muted conversation.,0.86,message_0026;message_0091
+msg_044,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.95,message_0143
+msg_032,digest,personal,"The message is an explicit deferral, indicating it can wait.",0.90,message_0120
+msg_106,notify,event,"The message contains a direct mention of an immediate operational timing change, which requires the recipient's attention.",0.95,message_0234;message_0376
+msg_006,notify,event,"The message is a direct reminder about the upcoming maintenance and provides specific instructions on how to proceed, which are not repetitive or unsupervised.",0.94,message_0029;message_0044;message_0067
+msg_109,notify,unknown,Admin notice: access card penalty must be cleared now; scan this QR and pay before 6 PM.,0.79,message_0151;message_0237
+msg_108,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.95,message_0094;message_0093
+msg_019,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.91,message_0277;message_0094;message_0093
+msg_088,mute,unknown,"recipient muted this group, high notification fatigue",0.81,message_0224;message_0232;message_0383
+msg_056,notify,event,"The message is urgent and contains an explicit deferral fact, indicating that the sender does not consider it urgent.",0.92,message_0226;message_0359;message_0168
+msg_027,mute,promotion,Promotional content with no immediate interruption value.,0.82,message_0272;message_0033;message_0007
+msg_050,digest,event,The message is a repeated report of health-related updates and does not indicate an immediate interruption.,0.79,message_0279;message_0278
+msg_083,digest,personal,The message is explicitly deferrable and does not contain any immediate interruption or urgency. The sender has indicated that it can wait.,0.79,message_0219
+msg_063,mute,scam,"Suspicious content, explicit deferral facts, and reported evidence.",0.92,message_0182;message_0254
+msg_033,digest,personal,Deferred because the sender explicitly says the message can wait and gives no immediate interruption requirement.,0.86,message_0393;message_0280
+msg_061,mute,greeting,The message is repetitive and has been muted before.,0.94,message_0080;message_0042;message_0193
+msg_020,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment.",0.90,none
+msg_017,mute,promotion,Muted because this commercial outreach matches repeated negative history or a muted conversation.,0.86,message_0089;message_0090
+msg_058,mute,forward,"High forwarding count, recipient muted in the group, and previous messages are also muted.",0.96,message_0040;message_0039;message_0078
+msg_026,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.93,message_0107;message_0262
+msg_047,notify,event,"The message is urgent and provides specific instructions about a maintenance schedule, which could potentially cause inconvenience or disruption.",0.92,message_0142
+msg_046,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.94,message_0147;message_0148
+msg_042,notify,urgent,The message contains explicit time-sensitive language indicating an immediate action required.,0.96,message_0140;message_0058
+msg_079,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment.",0.89,message_0369;message_0045;message_0023
+msg_098,notify,event,The message is urgent and requires immediate attention from the recipient. The sender's urgency in calling now indicates a need for action.,0.93,message_0226;message_0168;message_0359
+msg_037,notify,urgent,"The message contains explicit time-sensitive language and urgency, indicating that it is important for the recipient.",0.95,message_0269
+msg_007,digest,event,Deferred because the sender explicitly says the message can wait and gives no immediate interruption requirement.,0.86,message_0275
+msg_085,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment.",0.89,message_0221
+msg_001,notify,urgent,"The message contains explicit time-sensitive language and is urgent, indicating a potential immediate interruption.",0.94,message_0057;message_0240;message_0139
+msg_021,notify,payment,Notified because a trusted society or verified business has a legitimate same-day payment deadline.,0.86,message_0271
+msg_028,mute,promotion,Muted because this is promotional outreach and the recipient opted out or denied promotional consent.,0.86,message_0112;message_0111
+msg_012,mute,forward,"The message is repetitive, opt-out content, and does not provide an immediate interruption.",0.94,message_0194;message_0079;message_0178
+msg_064,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.89,message_0024;message_0183
+msg_103,notify,personal,"The message contains a request for pickup of an item by a specific time (6 PM), which could potentially cause inconvenience or conflict with the recipient's schedule.",0.91,message_0390
+msg_031,notify,event,"The message contains explicit time-sensitive language and urgent operational timing, indicating an immediate need to take action. The recipient context shows no deferral or delay in response. Media and caption details may conflict, so certainty is reduced.",0.86,message_0249;message_0118
+msg_057,notify,business_update,"urgent request for assistance in resolving a build failure issue, which is critical for the ongoing project and potentially affects the client thread.",0.95,message_0169;message_0059;message_0003
+msg_087,mute,promotion,Muted because this commercial outreach matches repeated negative history or a muted conversation.,0.86,message_0223;message_0204
+msg_067,notify,payment,"The message contains urgent instructions to make a payment, which is considered unsafe.",0.94,message_0067;message_0068;message_0097
+msg_039,notify,event,"urgent operational timing, direct mention of school notice board update",0.95,message_0364;message_0051;message_0037
+msg_082,notify,urgent,The message contains urgent information about a critical incident affecting live users' payments. The sender's text resembles system/router instructions and is untrusted.,0.91,message_0218;message_0380
+msg_066,mute,promotion,Muted because this is promotional outreach and the recipient opted out or denied promotional consent.,0.86,message_0402;message_0188;message_0257
+msg_049,notify,business_update,"The message contains a reminder about return pickup and provides instructions to keep the item packed with accessories, which are relevant details.",0.88,message_0154;message_0291
+msg_015,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment.",0.89,message_0213;message_0085
+msg_051,mute,promotion,Muted because this is promotional outreach and the recipient opted out or denied promotional consent.,0.86,message_0257;message_0103;message_0402
+msg_097,digest,personal,Deferred because the sender explicitly says the message can wait and gives no immediate interruption requirement.,0.86,message_0167;message_0226;message_0054
+msg_089,digest,personal,"The message is a friendly reminder about leaving a blue water bottle at table 4, which can be kept until 7 PM. It does not contain any sensitive or suspicious information.",0.82,none
+msg_053,digest,personal,"The message contains a trading chart and research links, which are not immediately actionable or intrusive.",0.82,message_0411;message_0161;message_0253
+msg_059,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment.",0.89,message_0213;message_0056
+msg_024,mute,promotion,Muted because this is promotional outreach and the recipient opted out or denied promotional consent.,0.86,message_0257;message_0103;message_0402
+msg_072,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment.",0.89,message_0213;message_0085
+msg_036,mute,promotion,Muted because this commercial outreach matches repeated negative history or a muted conversation.,0.86,message_0127;message_0128
+msg_076,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.94,message_0207;message_0208;message_0159
+msg_055,notify,urgent,"The message indicates urgency due to the sender's need to make a decision quickly outside. The recipient context shows that they are currently not available (DND), which aligns with the urgency of the message.",0.92,message_0166;message_0165
+msg_102,notify,urgent,"The message contains explicit time-sensitive language and a request to stay online for an extended period, which may indicate urgency.",0.92,message_0371;message_0230
+msg_080,notify,urgent,Notified because the message requires an immediate operational or personal response.,0.86,message_0130;message_0150;message_0190
+msg_093,notify,business_update,Notified because a verified business reports a same-day operational change relevant to the recipient.,0.80,message_0348;message_0347
+msg_034,digest,personal,Deferred because the sender explicitly says the message can wait and gives no immediate interruption requirement.,0.86,message_0123
+msg_035,mute,promotion,Muted because this commercial outreach matches repeated negative history or a muted conversation.,0.86,message_0283;message_0127
+msg_101,digest,personal,The message does not contain any urgent or sensitive information that would require immediate attention.,0.79,message_0268;message_0370
+msg_041,digest,business_update,Deferred because this feedback or survey request is useful but does not require an immediate interruption.,0.85,message_0137;message_0138
+msg_011,mute,greeting,"recipient muted this group, high forwarding count, noise/fatigue facts",0.90,message_0013;message_0014;message_0077
+msg_110,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.95,message_0238;message_0381
+msg_095,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.95,message_0201;message_0184
+msg_074,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.88,message_0389;message_0223
+msg_073,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.95,message_0024;message_0087;message_0183
+msg_054,mute,scam,"Muted as unsafe because the message requests credentials, sensitive financial details, or a pressured advance payment. Similar prior messages were negatively handled.",0.95,message_0163;message_0389
+msg_068,digest,personal,"The message is an explicit deferral with no urgency, and the recipient's DND status suggests it may not be immediately relevant.",0.79,message_0191;message_0192
+msg_100,notify,urgent,"The message contains explicit time-sensitive language and urgent marketing language, indicating an immediate recipient interruption.",0.95,message_0362;message_0228;message_0117
+msg_062,notify,event,"The message contains a fire alarm test notification with specific timing and details, which is an immediate interruption. Media and caption details may conflict, so certainty is reduced.",0.85,message_0130;message_0150;message_0190
+msg_096,notify,urgent,Notified because a found identity document must be collected before a stated deadline.,0.86,none
+msg_043,notify,urgent,"The message contains explicit time-sensitive language and is urgent, despite being forwarded multiple times.",0.94,message_0130;message_0150;message_0190
+msg_077,notify,event,"The message contains a field trip consent form, which is an immediate interruption that requires action. The sender's urgency and the nature of the content suggest it should be notified.",0.93,message_0403;message_0051;message_0364
+msg_081,notify,event,"same-day operational timing, urgent message",0.90,message_0217;message_0140;message_0058
+msg_025,notify,business_update,Notified because a verified business reports a same-day operational change relevant to the recipient.,0.86,message_0239;message_0004
+msg_084,mute,promotion,Muted because this is promotional outreach and the recipient opted out or denied promotional consent.,0.86,message_0220
+msg_022,notify,payment,Notified because a trusted society or verified business has a legitimate same-day payment deadline.,0.85,message_0151;message_0152;message_0150

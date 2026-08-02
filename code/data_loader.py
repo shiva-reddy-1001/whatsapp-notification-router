@@ -70,7 +70,8 @@ class Dataset:
         row = table.get(message.media_id)
         return self.root / row["file_path"] if row and row.get(key) else None
 
-    def case_file(self, message: Message, content: str, media_quality: float) -> CaseFile:
+    def case_file(self, message: Message, content: str, media_quality: float,
+                  media_text: str = "") -> CaseFile:
         daily = self.daily.get(message.user_id, [])
         latest = max(daily, key=lambda row: row.get("date", ""), default={})
         return CaseFile(
@@ -82,4 +83,6 @@ class Dataset:
             business=self.businesses.get(message.business_id or "", {}),
             business_history=self.business_history.get((message.user_id, message.business_id), {}),
             notification_summary=latest,
+            native_text=message.message_text,
+            media_text=media_text,
         )

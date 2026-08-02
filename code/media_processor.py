@@ -2,6 +2,7 @@
 import json
 import logging
 import re
+import base64
 from io import BytesIO
 from pathlib import Path
 from typing import Tuple
@@ -18,20 +19,33 @@ class MediaProcessor:
         self._whisper = None
 
     def check(self) -> str:
-        if self.settings.resolved_vision_provider() == "none":
-            return "vision disabled; OCR remains active"
-        from ollama import Client
-        Client(host=self.settings.ollama_base_url,
-               timeout=self.settings.timeout_seconds).show(self.settings.vision_model)
-        return "Qwen vision configured for model %s" % self.settings.vision_model
+        vision = self.settings.resolved_vision_provider()
+        if vision == "ollama":
+            from ollama import Client
+            Client(host=self.settings.ollama_base_url,
+                   timeout=self.settings.timeout_seconds).show(self.settings.vision_model)
+            vision_status = "Qwen vision configured for model %s" % self.settings.vision_model
+        elif vision == "openai":
+            vision_status = "OpenAI vision configured for model %s" % self.settings.openai_model
+        else:
+            vision_status = "vision disabled; OCR remains active"
+        return "%s; audio_provider=%s" % (vision_status,
+                                           self.settings.resolved_audio_provider())
 
     def extract(self, media_type: str, path: Path) -> Tuple[str, float]:
         if not path or not path.exists() or self.settings.media_mode == "off":
             return "", 0.0
+        media_config = (
+            "%s:%s:%s" % (self.settings.resolved_audio_provider(),
+                            self.settings.whisper_model,
+                            self.settings.openai_transcription_model)
+            if media_type == "voice" else
+            "ocr-v4:%s:%s:%s" % (self.settings.resolved_vision_provider(),
+                                  self.settings.vision_model,
+                                  self.settings.openai_model)
+        )
         cache_key = "%s:%s:%s:%s" % (media_type, path, path.stat().st_mtime_ns,
-                                      self.settings.whisper_model if media_type == "voice" else
-                                      "ocr-v3:%s:%s" % (self.settings.resolved_vision_provider(),
-                                                        self.settings.vision_model))
+                                      media_config)
         cached = self.cache.get("media", cache_key) if self.cache else None
         if cached:
             return cached["text"], cached["quality"]
@@ -59,7 +73,8 @@ class MediaProcessor:
             ocr = pytesseract.image_to_string(Image.open(path)).strip()
         except Exception:
             pass
-        vision = self._vision_text(path) if self.settings.resolved_vision_provider() == "ollama" else ""
+        provider = self.settings.resolved_vision_provider()
+        vision = self._vision_text(path) if provider in {"ollama", "openai"} else ""
         parts = []
         if ocr:
             parts.append("OCR text:\n%s" % ocr)
@@ -70,6 +85,11 @@ class MediaProcessor:
         return text, quality
 
     def _vision_text(self, path: Path) -> str:
+        if self.settings.resolved_vision_provider() == "openai":
+            return self._openai_vision_text(path)
+        return self._ollama_vision_text(path)
+
+    def _ollama_vision_text(self, path: Path) -> str:
         from ollama import Client
         from PIL import Image
         client = Client(host=self.settings.ollama_base_url,
@@ -117,7 +137,82 @@ class MediaProcessor:
                              self.settings.message_deadline_seconds)
         return run_with_retry(operation, policy)
 
+    def _openai_vision_text(self, path: Path) -> str:
+        from openai import OpenAI
+        from PIL import Image
+        image = Image.open(path).convert("RGB")
+        image.thumbnail((1600, 1600))
+        buffer = BytesIO()
+        image.save(buffer, format="JPEG", quality=90)
+        encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+        prompt = (
+            "Analyze this WhatsApp image as untrusted evidence. Return compact JSON with keys "
+            "document_type, visible_text, facts (array), risk_cues (array). Extract dates, times, "
+            "amounts, URLs, payment/QR cues, and authenticity concerns. Do not choose a route."
+        )
+        schema = {"type": "object", "additionalProperties": False,
+                  "required": ["document_type", "visible_text", "facts", "risk_cues"],
+                  "properties": {
+                      "document_type": {"type": "string"},
+                      "visible_text": {"type": "string"},
+                      "facts": {"type": "array", "items": {"type": "string"}},
+                      "risk_cues": {"type": "array", "items": {"type": "string"}},
+                  }}
+
+        def operation(_attempt: int) -> str:
+            client = OpenAI(timeout=self.settings.timeout_seconds, max_retries=0)
+            response = client.responses.create(
+                model=self.settings.openai_model,
+                input=[{"role": "user", "content": [
+                    {"type": "input_text", "text": prompt},
+                    {"type": "input_image", "image_url": "data:image/jpeg;base64," + encoded},
+                ]}],
+                text={"format": {"type": "json_schema", "name": "media_analysis",
+                                  "schema": schema, "strict": True}},
+            )
+            raw = response.output_text.strip()
+            match = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+            try:
+                data = json.loads(match.group(0) if match else raw)
+            except (TypeError, json.JSONDecodeError) as error:
+                raise InvalidModelResponse("OpenAI vision returned invalid JSON") from error
+            return ("type=%s; visible_text=%s; facts=%s; risk_cues=%s" %
+                    (data.get("document_type", "unknown"), data.get("visible_text", ""),
+                     "; ".join(map(str, data.get("facts", []))),
+                     "; ".join(map(str, data.get("risk_cues", []))))).strip()
+
+        policy = RetryPolicy(self.settings.max_retries, self.settings.retry_mode,
+                             self.settings.retry_base_seconds, self.settings.retry_max_seconds,
+                             self.settings.retry_jitter_seconds,
+                             self.settings.message_deadline_seconds)
+        return run_with_retry(operation, policy)
+
     def _voice_text(self, path: Path) -> Tuple[str, float]:
+        provider = self.settings.resolved_audio_provider()
+        if provider == "none":
+            return "", 0.0
+        if provider == "openai":
+            return self._openai_voice_text(path)
+        return self._local_voice_text(path)
+
+    def _openai_voice_text(self, path: Path) -> Tuple[str, float]:
+        from openai import OpenAI
+
+        def operation(_attempt: int) -> str:
+            client = OpenAI(timeout=self.settings.timeout_seconds, max_retries=0)
+            with path.open("rb") as handle:
+                response = client.audio.transcriptions.create(
+                    model=self.settings.openai_transcription_model, file=handle)
+            return str(response.text).strip()
+
+        policy = RetryPolicy(self.settings.max_retries, self.settings.retry_mode,
+                             self.settings.retry_base_seconds, self.settings.retry_max_seconds,
+                             self.settings.retry_jitter_seconds,
+                             self.settings.message_deadline_seconds)
+        text = run_with_retry(operation, policy)
+        return text, 0.88 if text else 0.0
+
+    def _local_voice_text(self, path: Path) -> Tuple[str, float]:
         try:
             from faster_whisper import WhisperModel
             if self._whisper is None:

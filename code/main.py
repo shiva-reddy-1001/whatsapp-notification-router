@@ -25,6 +25,8 @@ def parse_args():
     parser.add_argument("--output", help="destination output.csv")
     parser.add_argument("--provider", choices=["auto", "openai", "ollama"])
     parser.add_argument("--check-config", action="store_true", help="validate selected provider without routing")
+    parser.add_argument("--clear-cache", action="store_true",
+                        help="clear router-owned cached media, embeddings, and predictions before running")
     parser.add_argument("--verbose", action="store_true")
     return parser.parse_args()
 
@@ -36,6 +38,9 @@ def main() -> int:
     settings = Settings.from_environment(args.dataset_dir, args.output, args.provider)
     random.seed(settings.seed)
     cache = SQLiteCache(settings.cache_path)
+    if args.clear_cache:
+        cache.clear()
+        logging.info("cleared router cache at %s", settings.cache_path)
     classifier = Classifier(settings, cache)
     media = MediaProcessor(settings, cache)
     embeddings = EmbeddingIndex(settings, cache)
@@ -64,7 +69,7 @@ def main() -> int:
         extracted, quality = media.extract(message.media_type or "", dataset.media_path(message)) \
             if message.media_type else ("", 1.0)
         content = "\n".join(piece for piece in [message.message_text, extracted] if piece).strip()
-        case = dataset.case_file(message, content, quality)
+        case = dataset.case_file(message, content, quality, extracted)
         apply_features(case)
         case.evidence = retrieve(case, dataset.history_by_user[message.user_id],
                                  settings.max_evidence, embeddings)

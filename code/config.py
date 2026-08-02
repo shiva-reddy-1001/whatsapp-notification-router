@@ -39,6 +39,8 @@ class Settings:
     run_deadline_seconds: float
     vision_provider: str
     vision_model: str
+    audio_provider: str
+    openai_transcription_model: str
     embedding_provider: str
     openai_embedding_model: str
     ollama_embedding_model: str
@@ -58,8 +60,11 @@ class Settings:
         if retry_mode not in {"none", "fixed", "exponential"}:
             raise ValueError("ROUTER_RETRY_MODE must be none, fixed, or exponential")
         vision_provider = _env("ROUTER_VISION_PROVIDER", "auto").lower()
-        if vision_provider not in {"auto", "none", "ollama"}:
-            raise ValueError("ROUTER_VISION_PROVIDER must be auto, none, or ollama")
+        if vision_provider not in {"auto", "none", "openai", "ollama"}:
+            raise ValueError("ROUTER_VISION_PROVIDER must be auto, none, openai, or ollama")
+        audio_provider = _env("ROUTER_AUDIO_PROVIDER", "auto").lower()
+        if audio_provider not in {"auto", "none", "openai", "local"}:
+            raise ValueError("ROUTER_AUDIO_PROVIDER must be auto, none, openai, or local")
         embedding_provider = _env("ROUTER_EMBEDDING_PROVIDER", "auto").lower()
         if embedding_provider not in {"auto", "none", "openai", "ollama"}:
             raise ValueError("ROUTER_EMBEDDING_PROVIDER must be auto, none, openai, or ollama")
@@ -87,6 +92,8 @@ class Settings:
             run_deadline_seconds=max(0.0, float(_env("ROUTER_RUN_DEADLINE_SECONDS", "0"))),
             vision_provider=vision_provider,
             vision_model=_env("ROUTER_VISION_MODEL", _env("OLLAMA_MODEL", "qwen2.5vl:3b")),
+            audio_provider=audio_provider,
+            openai_transcription_model=_env("OPENAI_TRANSCRIPTION_MODEL", "whisper-1"),
             embedding_provider=embedding_provider,
             openai_embedding_model=_env("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
             ollama_embedding_model=_env("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text"),
@@ -107,6 +114,9 @@ class Settings:
     def resolved_vision_provider(self) -> str:
         if self.vision_provider != "auto":
             return self.vision_provider
-        # Local mode gets Qwen vision automatically. A clean OpenAI judge run
-        # must not acquire an undeclared Ollama dependency; OCR remains active.
-        return "none" if self.resolved_provider() == "openai" else "ollama"
+        return "openai" if self.resolved_provider() == "openai" else "ollama"
+
+    def resolved_audio_provider(self) -> str:
+        if self.audio_provider != "auto":
+            return self.audio_provider
+        return "openai" if self.resolved_provider() == "openai" else "local"

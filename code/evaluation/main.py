@@ -43,12 +43,12 @@ def main() -> int:
         extracted, quality = media.extract(message.media_type or "", dataset.media_path(message)) \
             if message.media_type else ("", 1.0)
         content = "\n".join(piece for piece in [message.message_text, extracted] if piece)
-        case = dataset.case_file(message, content, quality)
+        case = dataset.case_file(message, content, quality, extracted)
         apply_features(case)
         case.evidence = retrieve(case, dataset.history_by_user[message.user_id],
                                  settings.max_evidence, embeddings)
         if args.type_only:
-            actual_type = classifier.classify_type(case)
+            actual_type = classifier.classify_type(case).message_type
             type_ok += actual_type == row["message_type"]
             bucket = type_slices.setdefault(row["message_type"], [0, 0])
             bucket[0] += 1

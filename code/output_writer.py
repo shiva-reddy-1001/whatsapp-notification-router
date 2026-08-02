@@ -1,6 +1,8 @@
 """Submission writer and contract checks."""
 import csv
 import math
+import os
+import tempfile
 from pathlib import Path
 from typing import Iterable, List
 
@@ -36,11 +38,22 @@ def validate(predictions: List[Prediction], input_ids: Iterable[str], history_id
 def write(path: Path, predictions: List[Prediction], input_ids: Iterable[str], history_ids: Iterable[str]) -> None:
     validate(predictions, input_ids, history_ids)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=COLUMNS)
-        writer.writeheader()
-        for item in predictions:
-            writer.writerow({"message_id": item.message_id, "action": item.action,
-                             "message_type": item.message_type, "reason": item.reason,
-                             "confidence": "%.2f" % item.confidence,
-                             "evidence_message_ids": ";".join(item.evidence_message_ids) or "none"})
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", newline="",
+                                         dir=str(path.parent), prefix=".%s." % path.name,
+                                         suffix=".tmp", delete=False) as handle:
+            temporary = Path(handle.name)
+            writer = csv.DictWriter(handle, fieldnames=COLUMNS, lineterminator="\n")
+            writer.writeheader()
+            for item in predictions:
+                writer.writerow({"message_id": item.message_id, "action": item.action,
+                                 "message_type": item.message_type, "reason": item.reason,
+                                 "confidence": "%.2f" % item.confidence,
+                                 "evidence_message_ids": ";".join(item.evidence_message_ids) or "none"})
+            handle.flush()
+            os.fsync(handle.fileno())
+        temporary.replace(path)
+    finally:
+        if temporary and temporary.exists():
+            temporary.unlink()

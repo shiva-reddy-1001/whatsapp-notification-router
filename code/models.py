@@ -41,6 +41,14 @@ class RetrievedEvidence:
 
 
 @dataclass
+class TypeDecision:
+    """Evidence-isolated semantic classification from the specialist stage."""
+    message_type: str
+    reason: str
+    confidence: float
+
+
+@dataclass
 class CaseFile:
     message: Message
     content: str
@@ -55,6 +63,10 @@ class CaseFile:
     priority_signals: List[str] = field(default_factory=list)
     noise_signals: List[str] = field(default_factory=list)
     evidence: List[RetrievedEvidence] = field(default_factory=list)
+    native_text: str = ""
+    media_text: str = ""
+    defer_signals: List[str] = field(default_factory=list)
+    media_signals: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -65,4 +77,3 @@ class Prediction:
     reason: str
     confidence: float
     evidence_message_ids: List[str] = field(default_factory=list)
-

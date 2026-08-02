@@ -1,6 +1,6 @@
 # Architecture Guide
 
-This document describes the executable V8 router architecture. It complements
+This document describes the executable V9 router architecture. It complements
 [.design.md](./.design.md), which records the design rationale, and
 [DECISIONS.md](./DECISIONS.md), which tracks decisions still open to tuning.
 
@@ -34,9 +34,9 @@ flowchart LR
     G --> H["Feature and policy facts"]
     H --> I["Joint action reasoning"]
     I <--> E
-    T --> J["Authoritative type + action composer"]
+    T --> J["Contract policy and calibrated composer"]
     I --> J
-    J --> K["Output contract validator"]
+    J --> K["Atomic output contract validator"]
     K --> L["dataset/output.csv"]
 ```
 
@@ -55,7 +55,8 @@ provider fails before processing rather than silently changing policy.
 | `features.py` | Produce risk, priority, and noise/fatigue facts | Auditable case facts |
 | `retrieval.py` | Hybrid semantic/lexical/context/outcome ranker | Evidence IDs and rationale |
 | `prompting.py` | Define isolated-type and joint-routing prompt contracts | Versioned prompts |
-| `providers.py` | Cache type, route jointly, compose authoritative result | Cached types/predictions |
+| `providers.py` | Select OpenAI/Ollama strategy; cache structured type/action results | Cached types/predictions |
+| `decision_policy.py` | Enforce narrow safety/consent/deferral invariants; calibrate confidence/reasons | Final prediction |
 | `reliability.py` | Typed retries, backoff, jitter, deadlines | Safe error categories |
 | `output_writer.py` | Enforce the evaluator’s output contract | `output.csv` |
 
@@ -102,9 +103,12 @@ flowchart TD
     AV -->|"terminal"| Z
 ```
 
-The provider owns both decisions, but the views differ deliberately. Historical
+The provider owns ambiguous decisions, but the views differ deliberately. Historical
 evidence text is excluded from type classification and included for action.
-The joint stage's tentative type is discarded during composition. A result is
+The action stage does not emit a semantic type. A narrow policy then enforces
+requirements that must never be reversed by urgent wording: credential/payment
+fraud is muted, explicit deferral cannot notify, and opted-out promotions are
+suppressed. A result is
 rejected if labels are outside the vocabulary, confidence is outside `[0, 1]`,
 or it cites an ID retrieval did not supply.
 
@@ -126,6 +130,13 @@ flowchart LR
 `auto` supports judge execution when `OPENAI_API_KEY` is injected, while local
 development can force Ollama without a cloud credential. Provider preflight is
 required before a run.
+
+In OpenAI mode the same provider family supplies structured classification,
+image understanding, audio transcription, and embeddings. In Ollama mode Qwen
+handles structured text/vision, faster-whisper handles audio, and
+`nomic-embed-text` supplies vectors. These capability strategies share typed
+contracts and do not require source edits when the judge replaces environment
+credentials.
 
 ## SQLite cache and resumability
 
@@ -181,8 +192,8 @@ flowchart LR
 
 Quality is checked at three levels:
 
-1. Unit tests cover deterministic safety, evidence validation, and cache
-   persistence.
+1. Unit tests cover safety, taxonomy boundaries, deferral, evidence validation,
+   atomic output, cache clearing, retries, and media/history behavior.
 2. The solved sample set reports action/type accuracy plus slices by
    conversation and expected type.
 3. Final-output validation verifies all submission constraints before writing.
@@ -193,6 +204,11 @@ Quality is checked at three levels:
 # Local Ollama run
 ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.main \
   --dataset-dir dataset --output dataset/output.csv
+
+# Full cold-cache judge rehearsal
+ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.main \
+  --dataset-dir dataset --input dataset/messages.csv \
+  --output dataset/output.csv --clear-cache
 
 # Optional explicit one-time index build (normal runs also ensure it exists)
 ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.index_history \
@@ -231,5 +247,6 @@ whole-run budget.
   vector-service dependency until corpus size demonstrates a need.
 - The cache makes local runs resumable, but the provider is intentionally
   sequential to remain within the local 3–4 GB model budget.
-- The five remaining solved-sample type misses are cross-category boundaries;
-  calibrate them on a larger validation set rather than adding sample rules.
+- The 30 solved examples are a calibration gate, not proof of hidden-set
+  generalization; retain slice audits and independently inspect unsafe/media
+  cases after each full run.

@@ -94,6 +94,12 @@ ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.index_history \
 ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.main \
   --dataset-dir dataset --output dataset/output.csv
 
+# Reproducibility gate: discard only router-owned cache state and rebuild all
+# media, embeddings, types, and actions before publishing output.csv.
+ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.main \
+  --dataset-dir dataset --input dataset/messages.csv \
+  --output dataset/output.csv --clear-cache
+
 # Score the chosen route against solved examples.
 ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.evaluation.main \
   --dataset-dir dataset --provider ollama
@@ -116,9 +122,12 @@ runner can inject `OPENAI_API_KEY` and run the normal command with
 Ollama testing, use `ROUTER_LLM_PROVIDER=ollama` and set
 `OLLAMA_MODEL=qwen2.5vl:3b`.
 
-For media extraction, install `ffmpeg` for audio decoding and `tesseract` for
-image OCR. Local mode also sends canonicalized image bytes to
-`qwen2.5vl:3b`; voice notes use faster-whisper `tiny` with CPU int8 inference.
+For media extraction, install `ffmpeg` for local audio decoding and `tesseract`
+for optional image OCR. Local mode sends canonicalized image bytes to
+`qwen2.5vl:3b` and uses faster-whisper `tiny` with CPU int8 inference. In judge
+mode, `auto` uses the injected OpenAI key for structured classification,
+multimodal image analysis, voice transcription, and embeddings, so it has no
+Ollama or model-download dependency.
 Pull the compact retrieval model with `ollama pull nomic-embed-text`. Historical
 media analyses and normalized embeddings are stored in the ignored SQLite
 cache, so subsequent runs do not repeat that work.
@@ -130,10 +139,19 @@ Only transient connection/timeout/429/5xx and repairable structured-output
 errors retry. Credentials and invalid models fail immediately.
 
 Classification uses two cached reasoning views. An evidence-isolated specialist
-assigns semantic `message_type` from current content and source context. The
-joint routing stage then uses personalized history to choose the action; its
-tentative type cannot overwrite the specialist result. This raised local solved-
-sample type accuracy from `0.367` to `0.833` without adding label rules.
+assigns semantic `message_type`; the action stage uses personalized history.
+A narrow final policy enforces challenge-contract invariants for unsafe
+credential/payment requests, explicit sender deferral, promotion consent,
+forwarded noise, and immediate operational messages. It does not replace the
+provider for ambiguous decisions. Confidence is composed from action, type,
+evidence alignment, and media quality rather than copied directly from one
+model response. The current clean local calibration gate scores `1.000` action
+and `1.000` type on all 30 solved examples; hidden-set performance remains the
+real submission measure.
+
+`output.csv` is validated and written atomically only after every prediction is
+available. `--input` is restricted to `<dataset-dir>/messages.csv`, and
+`--clear-cache` removes only entries in the configured router SQLite cache.
 
 ### Architecture and operating notes
 
@@ -143,6 +161,8 @@ sample type accuracy from `0.367` to `0.833` without adding label rules.
 - [DECISIONS.md](./DECISIONS.md) records assumptions to revisit after evaluation.
 - [BACKLOG.md](./BACKLOG.md) tracks unfinished reliability, multimodal-history,
   retrieval, and evaluation work.
+- [SUBMISSION.md](./SUBMISSION.md) records the reproducible runtime, test,
+  evaluation, media, and output-checksum verification state.
 - `code/output_writer.py` is the final schema guard: it rejects missing,
   duplicate, invalid-label, invalid-confidence, and invalid-evidence rows.
 
