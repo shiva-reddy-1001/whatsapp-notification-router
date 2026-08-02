@@ -8,6 +8,7 @@
 .router-cache/
 __pycache__/
 *.py[cod]
+/code.zip
 
 # Operating-system metadata
 .DS_Store

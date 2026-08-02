@@ -56,6 +56,9 @@ class Settings:
         if chosen_provider not in {"auto", "openai", "ollama"}:
             raise ValueError("ROUTER_LLM_PROVIDER must be auto, openai, or ollama")
         data = Path(dataset_dir or _env("ROUTER_DATASET_DIR", "dataset"))
+        media_mode = _env("ROUTER_MEDIA_MODE", "auto").lower()
+        if media_mode not in {"auto", "off"}:
+            raise ValueError("ROUTER_MEDIA_MODE must be auto or off")
         retry_mode = _env("ROUTER_RETRY_MODE", "exponential").lower()
         if retry_mode not in {"none", "fixed", "exponential"}:
             raise ValueError("ROUTER_RETRY_MODE must be none, fixed, or exponential")
@@ -75,7 +78,7 @@ class Settings:
             openai_model=_env("OPENAI_MODEL", "gpt-4.1-mini"),
             ollama_base_url=_env("OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
             ollama_model=_env("OLLAMA_MODEL", "qwen2.5vl:3b"),
-            media_mode=_env("ROUTER_MEDIA_MODE", "auto").lower(),
+            media_mode=media_mode,
             timeout_seconds=float(_env("ROUTER_REQUEST_TIMEOUT_SECONDS", "60")),
             max_evidence=max(0, min(5, int(_env("ROUTER_MAX_RETRIEVED_EVIDENCE", "3")))),
             temperature=float(_env("ROUTER_TEMPERATURE", "0")),

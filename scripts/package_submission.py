@@ -23,7 +23,7 @@ def main():
             item = root / name
             if item.is_file(): archive.write(item, item.relative_to(root))
             elif item.is_dir():
-                for path in item.rglob("*"):
+                for path in sorted(item.rglob("*")):
                     if path.is_file() and should_include(path.relative_to(root)):
                         archive.write(path, path.relative_to(root))
     print("wrote %s" % destination)

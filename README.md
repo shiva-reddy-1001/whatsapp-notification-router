@@ -1,226 +1,344 @@
-# HackerRank Orchestrate
+# WhatsApp Message Notification Router
 
-Starter repository for the **HackerRank Orchestrate** 24-hour hackathon.
+AI-powered, personalized routing for WhatsApp text, image, and voice messages.
+For each row in `dataset/messages.csv`, the router decides whether to
+`notify`, `digest`, or `mute` and writes a schema-validated `output.csv`.
 
-## Message Notification Router
+This repository is the complete runnable solution for the HackerRank
+Orchestrate Message Notification Router challenge. The fastest evaluator path
+is [Quick start](#quick-start-openai--judge-run). The original contract is in
+[`problem_statement.md`](./problem_statement.md).
 
-Build an AI-powered system for WhatsApp that decides which messages deserve immediate attention, which should wait, and which should be muted.
+## Submission contract
 
-The system must reason over multimodal messages, including text messages, image posters/screenshots, and voice notes.
-
-WhatsApp is noisy. A user can receive family chats, society notices, school updates, co-worker messages, business account promotions, image posters, voice notes, and scams in the same message stream. Treating every message the same creates two bad outcomes: important messages get missed, and unwanted or risky messages interrupt the user.
-
-Read [`problem_statement.md`](./problem_statement.md) for the full task spec, input/output schema, allowed values, and submission format.
-
----
-
-## Repository Layout
+The program reads only participant-facing files under `dataset/` and writes
+exactly one result for every incoming `message_id` with these columns, in this
+exact order:
 
 ```text
-.
-├── AGENTS.md                         # Rules for AI coding tools + transcript logging
-├── problem_statement.md              # Full challenge statement
-├── README.md                         # You are here
-└── dataset/
-    ├── messages.csv                  # Messages to route
-    ├── output.csv                    # Blank submission template
-    ├── sample_messages.csv           # Solved examples
-    ├── users.csv                     # User notification behavior
-    ├── groups.csv                    # Group metadata
-    ├── group_members.csv             # User-group relationships
-    ├── business_accounts.csv         # Business sender metadata
-    ├── user_business_history.csv     # User-business history
-    ├── message_history.csv           # Historical messages
-    ├── message_events.csv            # User reactions to historical messages
-    ├── images.csv                    # Image IDs and media file paths
-    ├── voice_notes.csv               # Voice note IDs and media file paths
-    ├── daily_notification_summary.csv
-    └── media/
-        ├── images/
-        └── audio/
+message_id,action,message_type,reason,confidence,evidence_message_ids
 ```
 
----
+- `action`: `notify`, `digest`, or `mute`
+- `message_type`: `personal`, `urgent`, `event`, `payment`,
+  `business_update`, `promotion`, `greeting`, `forward`, `spam`, `scam`, or
+  `unknown`
+- `confidence`: finite number from `0` through `1`
+- `evidence_message_ids`: semicolon-separated historical IDs, or `none`
 
-## What You Need to Build
+The writer rejects incomplete runs, duplicates, invalid labels, invalid
+confidence, unknown evidence IDs, and wrong column order. It publishes the CSV
+atomically only after all messages succeed.
 
-For every row in `dataset/messages.csv`, produce one row in `output.csv` with:
+## Prerequisites
 
-| Column | Meaning |
-|---|---|
-| `message_id` | Incoming message ID |
-| `action` | One of `notify`, `digest`, or `mute` |
-| `message_type` | Best-fit message category |
-| `reason` | Short human-readable explanation |
-| `confidence` | Number from `0` to `1` |
-| `evidence_message_ids` | Historical message IDs used as evidence; write `none` if there is no useful evidence |
+| Requirement | OpenAI / judge | Local Ollama |
+|---|---:|---:|
+| Python 3.9+ (verified on 3.9.6) | required | required |
+| Internet access | OpenAI API calls | first model/Whisper download only |
+| `OPENAI_API_KEY` | required | no |
+| Ollama | no | required |
+| `qwen2.5vl:3b` | no | required (about 3.2 GB) |
+| `nomic-embed-text` | no | required (about 274 MB) |
+| FFmpeg | no | required for local voice notes |
+| Tesseract OCR | optional | recommended; Qwen vision still analyzes images |
 
-Your system should make personalized decisions using the provided message, user, group, business, media, and historical interaction data.
-For image and voice-note messages, `images.csv` and `voice_notes.csv` only provide file paths; your system should inspect the media files themselves.
+The Python dependencies are pinned in `requirements.txt`. A local run may
+download the faster-whisper `tiny` model on its first voice note. Model weights,
+caches, datasets, and secrets are deliberately excluded from `code.zip`.
 
----
+## Quick start: OpenAI / judge run
 
-## Suggested Workflow
-
-1. Inspect `dataset/sample_messages.csv` to understand the expected output format.
-2. Load `dataset/messages.csv` and all relevant context files.
-3. Build your routing system using any approach: LLMs, retrieval, rules, classifiers, agents, or hybrids.
-4. Write predictions to `output.csv`.
-5. Evaluate your approach on the solved sample rows before submitting.
-
-You may use any language or runtime. Python, JavaScript, and TypeScript are all reasonable choices.
-
----
-
-## Run the reference implementation
-
-The implementation in `code/` is provider-neutral and requires either OpenAI
-or Ollama. It fails at startup when the selected provider is unavailable rather
-than silently changing the prediction policy.
+Run from the extracted repository root. The judge can inject only
+`OPENAI_API_KEY`; `ROUTER_LLM_PROVIDER=auto` is already the default and selects
+OpenAI without source edits or local models.
 
 ```bash
-# One-time local setup (Python 3.9+)
 python3 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -r requirements.txt
 
-# Validate local configuration without writing predictions.
-.venv/bin/python -m code.main --check-config --provider ollama
+# Export the real key securely in the runner environment; never commit it.
+export OPENAI_API_KEY="<injected-by-runner>"
 
-# One-time historical media + embedding index (also runs automatically).
+# This validates provider selection and required credentials without inference.
+.venv/bin/python -m code.main --check-config --provider auto
+
+# Full run. --input is intentionally restricted to this participant file.
+.venv/bin/python -m code.main \
+  --dataset-dir dataset \
+  --input dataset/messages.csv \
+  --output dataset/output.csv
+```
+
+With OpenAI selected, the same provider strategy supplies structured type and
+action decisions, image understanding, voice transcription, and embeddings.
+No Ollama server, local model, FFmpeg, or Tesseract is needed in this mode.
+
+`OPENAI_MODEL` defaults to `gpt-4.1-mini`, the embedding model defaults to
+`text-embedding-3-small`, and transcription defaults to `whisper-1`. Override
+these only with compatible model IDs available to the supplied API key.
+
+## Full local setup: Ollama
+
+### 1. Install system tools
+
+On macOS with Homebrew (include `pyenv` when Python 3.9 is not already
+available):
+
+```bash
+brew install pyenv ollama ffmpeg tesseract
+pyenv install -s 3.9.6
+pyenv local 3.9.6
+```
+
+On Linux, install Ollama using its official installer and install `ffmpeg` and
+`tesseract-ocr` with the operating system package manager. Start Ollama in a
+separate terminal if it is not already running:
+
+```bash
+ollama serve
+```
+
+### 2. Pull the memory-conscious models
+
+```bash
+ollama pull qwen2.5vl:3b
+ollama pull nomic-embed-text
+ollama list
+```
+
+The selected generation model was chosen for a 16 GB development machine and
+uses roughly 3–4 GB while active. Qwen handles both classification and semantic
+image analysis; the small embedding model supports historical retrieval.
+
+### 3. Create the Python environment
+
+```bash
+python3 --version
+python3 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r requirements.txt
+```
+
+The solution is tested with Python 3.9.6. If several Python versions are
+installed, create the environment with that interpreter (for example,
+`pyenv local 3.9.6` before `python -m venv .venv`). On Windows, use
+`.venv\Scripts\python` instead of `.venv/bin/python` and set environment
+variables using the active shell's syntax.
+
+### 4. Validate and run
+
+```bash
+ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.main --check-config
+
+# Optional one-time historical media and embedding warm-up. A normal run also
+# performs this automatically.
 ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.index_history \
   --dataset-dir dataset
 
-# Local Ollama run.
 ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.main \
-  --dataset-dir dataset --output dataset/output.csv
+  --dataset-dir dataset \
+  --input dataset/messages.csv \
+  --output dataset/output.csv
+```
 
-# Reproducibility gate: discard only router-owned cache state and rebuild all
-# media, embeddings, types, and actions before publishing output.csv.
+For the final reproducibility rehearsal, discard only router-owned cached
+media, embeddings, and predictions and rebuild them:
+
+```bash
 ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.main \
-  --dataset-dir dataset --input dataset/messages.csv \
-  --output dataset/output.csv --clear-cache
+  --dataset-dir dataset \
+  --input dataset/messages.csv \
+  --output dataset/output.csv \
+  --clear-cache
+```
 
-# Score the chosen route against solved examples.
+## Environment configuration
+
+No `.env` file is required. Environment variables override checked-in defaults;
+explicit CLI flags override the corresponding path/provider variables. For
+local convenience only:
+
+```bash
+cp .env.example .env
+```
+
+`.env` is ignored by git. Never put a real key in `.env.example`, source code,
+logs, output, or the submission archive.
+
+Important variables:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `ROUTER_LLM_PROVIDER` | `auto` | `auto`, `openai`, or `ollama` |
+| `OPENAI_API_KEY` | unset | canonical judge/API credential |
+| `OPENAI_MODEL` | `gpt-4.1-mini` | OpenAI classification/vision model |
+| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | local Ollama endpoint |
+| `OLLAMA_MODEL` | `qwen2.5vl:3b` | local classifier and vision model |
+| `ROUTER_MEDIA_MODE` | `auto` | `auto` or `off` |
+| `ROUTER_VISION_PROVIDER` | `auto` | `auto`, `none`, `openai`, or `ollama` |
+| `ROUTER_AUDIO_PROVIDER` | `auto` | `auto`, `none`, `openai`, or `local` |
+| `ROUTER_EMBEDDING_PROVIDER` | `auto` | `auto`, `none`, `openai`, or `ollama` |
+| `ROUTER_CACHE_PATH` | `.router-cache/router.sqlite` | ignored resumable cache |
+| `ROUTER_REQUEST_TIMEOUT_SECONDS` | `60` | timeout for one provider request |
+| `ROUTER_MAX_RETRIES` | `2` | bounded transient retries |
+| `ROUTER_RETRY_MODE` | `exponential` | `none`, `fixed`, or `exponential` |
+| `ROUTER_MESSAGE_DEADLINE_SECONDS` | `180` | total budget for one message operation |
+| `ROUTER_RUN_DEADLINE_SECONDS` | `0` | optional whole-run deadline; `0` disables |
+
+All supported variables and safe defaults are documented in `.env.example`.
+Preflight verifies OpenAI key presence and verifies the local Ollama service and
+model. Actual OpenAI key validity/model access is confirmed by the first API
+request. An explicitly selected provider never silently switches classification
+policy. Retries are limited to transient connection/timeout/429/5xx and
+repairable structured output failures; authentication and unknown-model errors
+fail immediately when returned by the provider.
+
+## How the solution works
+
+```text
+participant CSVs
+  -> validated per-message case file (user + group/business + load context)
+  -> current and historical media extraction (OCR/vision or ASR)
+  -> auditable risk, priority, fatigue, and relationship features
+  -> cached hybrid historical retrieval (dense + lexical + outcomes)
+  -> evidence-isolated message-type specialist
+  -> personalized action classifier
+  -> narrow safety/consistency policy + calibrated confidence
+  -> atomic output contract validation
+```
+
+Key design choices:
+
+- **Multimodal content is first-class.** Current and historical images are
+  canonicalized, OCR'd, and semantically analyzed. Voice notes are transcribed.
+  Conflicting or poor-quality media lowers confidence.
+- **Personalization is explicit.** The case file separates recipient behavior,
+  group membership/mute state, business trust/opt-in history, daily load, and
+  prior reactions rather than dumping raw CSV rows into one prompt.
+- **Retrieval is attributable.** Historical text and extracted media are
+  embedded once, cached in SQLite, and combined with lexical, relationship, and
+  user-outcome signals. Only same-user, retrieval-approved IDs can be emitted.
+- **Type and action are separated.** A history-isolated specialist determines
+  semantic `message_type`; a second view uses personalized evidence for the
+  routing action. This prevents retrieved vocabulary from contaminating type.
+- **The model remains primary.** A narrow final policy enforces challenge
+  invariants for unsafe credential/payment requests, explicit deferral,
+  opted-out/rejected promotions, urgent interruptions, reason consistency, and
+  confidence caps. There is no general rules-based classifier fallback.
+- **Execution is resumable and deterministic where practical.** Versioned
+  prompt/cache keys, temperature `0`, seed `42`, bounded retries, deadlines,
+  preflight checks, and an atomic schema guard make failures visible and reruns
+  safe.
+
+See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for process diagrams,
+[`.design.md`](./.design.md) for low-level design, and
+[`DECISIONS.md`](./DECISIONS.md) for assumptions and calibration decisions.
+
+- [Low-level design](./.design.md)
+- [Architecture and process flows](./ARCHITECTURE.md)
+- [Decision record](./DECISIONS.md)
+- [Known backlog](./BACKLOG.md)
+- [V9 verification manifest](./SUBMISSION.md)
+
+## Verified results
+
+The latest V9 cold-cache local rehearsal produced:
+
+| Check | Result |
+|---|---:|
+| Incoming/final rows | 110 / 110 |
+| Exact schema, unique IDs, allowed labels, valid evidence | pass |
+| Current + historical media with non-empty extraction | 33 / 33 |
+| Historical assets enriched | 23 / 23 |
+| Unit/regression tests | 46 passed |
+| Solved calibration action accuracy | 1.000 (30 / 30) |
+| Solved calibration type accuracy | 1.000 (30 / 30) |
+| Extracted-package compilation/tests | pass |
+| OpenAI judge static configuration dry preflight | pass |
+| Real OpenAI end-to-end inference | requires an injected valid key; not claimed |
+
+The 30 solved examples are a calibration gate, not a hidden test set or a claim
+of leaderboard accuracy. Earlier dense retrieval alone measured action `0.500`
+and type `0.367`; separating type reasoning and tightening generic taxonomy and
+safety boundaries closed the observed calibration errors without hardcoding
+sample IDs. Hidden-set performance remains the actual submission measure.
+
+The verified V9 `dataset/output.csv` SHA-256 is recorded in
+[`SUBMISSION.md`](./SUBMISSION.md). Regenerating through a remote or stochastic
+provider can legitimately change predictions and therefore the checksum.
+
+## Test, evaluate, and package
+
+```bash
+# Fast deterministic tests (write bytecode outside the repository).
+PYTHONPYCACHEPREFIX=/tmp/router-pycache \
+  .venv/bin/python -m unittest discover -v
+
+# Score against the 30 solved calibration examples.
 ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.evaluation.main \
   --dataset-dir dataset --provider ollama
 
-# Diagnose isolated type accuracy and per-row type confusions.
+# Show isolated type confusions when calibrating.
 ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.evaluation.main \
   --dataset-dir dataset --provider ollama --type-only --show-errors
 
-# Fast deterministic unit tests.
-PYTHONPYCACHEPREFIX=/tmp/router-pycache .venv/bin/python -m unittest discover -v
-
-# Create the required clean code package (never includes .env, model weights,
-# caches, or dataset files).
+# Build the required clean archive.
 .venv/bin/python scripts/package_submission.py --destination code.zip
+
+# Inspect before upload: no dataset, .env, cache, venv, weights, or bytecode.
+unzip -l code.zip
+shasum -a 256 code.zip dataset/output.csv
 ```
 
-Copy `.env.example` to an ignored `.env` only for local development. A judge
-runner can inject `OPENAI_API_KEY` and run the normal command with
-`ROUTER_LLM_PROVIDER=auto` or `openai`; no source change is required. For local
-Ollama testing, use `ROUTER_LLM_PROVIDER=ollama` and set
-`OLLAMA_MODEL=qwen2.5vl:3b`.
+`code.zip` contains the runnable `code/`, prompts/configuration, pinned
+requirements, tests, packaging script, README, design/architecture records, and
+the problem statement. The dataset is intentionally not duplicated in the code
+archive because the runner supplies it and `output.csv` is uploaded separately.
 
-For media extraction, install `ffmpeg` for local audio decoding and `tesseract`
-for optional image OCR. Local mode sends canonicalized image bytes to
-`qwen2.5vl:3b` and uses faster-whisper `tiny` with CPU int8 inference. In judge
-mode, `auto` uses the injected OpenAI key for structured classification,
-multimodal image analysis, voice transcription, and embeddings, so it has no
-Ollama or model-download dependency.
-Pull the compact retrieval model with `ollama pull nomic-embed-text`. Historical
-media analyses and normalized embeddings are stored in the ignored SQLite
-cache, so subsequent runs do not repeat that work.
+## Troubleshooting
 
-Retries are bounded and config driven. `ROUTER_RETRY_MODE` accepts `none`,
-`fixed`, or `exponential`; base/max/jitter, request timeout, per-message
-deadline, and the optional whole-run deadline are documented in `.env.example`.
-Only transient connection/timeout/429/5xx and repairable structured-output
-errors retry. Credentials and invalid models fail immediately.
+- **`ProviderUnavailable` or connection refused:** run `ollama serve`, confirm
+  `ollama list`, or supply a valid `OPENAI_API_KEY` and select `auto/openai`.
+- **Model not found:** pull the exact Ollama names shown above; model aliases
+  must match the environment configuration.
+- **Voice-note failure locally:** confirm `ffmpeg -version`. The first
+  faster-whisper run also needs network access to download `tiny`.
+- **Poor/missing OCR:** confirm `tesseract --version`; Qwen/OpenAI vision still
+  provides semantic analysis when configured.
+- **Timeouts/429/5xx:** increase request/message deadlines or retry limits in
+  the environment. The default retry policy is bounded and exponential.
+- **Stale local results:** use `--clear-cache`. It clears only the configured
+  router SQLite cache, never the dataset or output path.
+- **Wrong input rejected:** `--input` must resolve exactly to
+  `<dataset-dir>/messages.csv`; organizer-only files cannot be routed.
+- **No output after failure:** expected. Partial predictions are never
+  published; fix the reported provider/media error and rerun.
 
-Classification uses two cached reasoning views. An evidence-isolated specialist
-assigns semantic `message_type`; the action stage uses personalized history.
-A narrow final policy enforces challenge-contract invariants for unsafe
-credential/payment requests, explicit sender deferral, promotion consent,
-forwarded noise, and immediate operational messages. It does not replace the
-provider for ambiguous decisions. Confidence is composed from action, type,
-evidence alignment, and media quality rather than copied directly from one
-model response. The current clean local calibration gate scores `1.000` action
-and `1.000` type on all 30 solved examples; hidden-set performance remains the
-real submission measure.
+## Final submission checklist
 
-`output.csv` is validated and written atomically only after every prediction is
-available. `--input` is restricted to `<dataset-dir>/messages.csv`, and
-`--clear-cache` removes only entries in the configured router SQLite cache.
+The challenge requires exactly three uploads:
 
-### Architecture and operating notes
+1. **`code.zip`** — generated by `scripts/package_submission.py`.
+2. **`output.csv`** — upload the verified `dataset/output.csv` under this name.
+3. **`chat_transcript`** — upload the external append-only development log from
+   `$HOME/hackerrank_orchestrate_august26/log.txt` (or the corresponding
+   `%USERPROFILE%` path on Windows), with secrets redacted.
 
-- [ARCHITECTURE.md](./ARCHITECTURE.md) provides the executable system diagrams
-  and operational flow.
-- [.design.md](./.design.md) contains the low-level design and execution plan.
-- [DECISIONS.md](./DECISIONS.md) records assumptions to revisit after evaluation.
-- [BACKLOG.md](./BACKLOG.md) tracks unfinished reliability, multimodal-history,
-  retrieval, and evaluation work.
-- [SUBMISSION.md](./SUBMISSION.md) records the reproducible runtime, test,
-  evaluation, media, and output-checksum verification state.
-- `code/output_writer.py` is the final schema guard: it rejects missing,
-  duplicate, invalid-label, invalid-confidence, and invalid-evidence rows.
+Before submitting:
 
----
+- confirm the extracted archive installs and `python -m unittest discover -v`
+  passes;
+- confirm the runner places all participant CSV/media files under `dataset/`;
+- run the exact OpenAI or Ollama command above from the repository root;
+- confirm `dataset/output.csv` has the exact six columns and one row per input;
+- ensure `.env`, API keys, `.router-cache`, model weights, and organizer-only
+  files are absent from `code.zip`;
+- upload the final CSV separately (the packager intentionally excludes it);
+- upload the chat transcript separately; `AGENTS.md` is operational guidance,
+  not a substitute for the transcript file.
 
-## Requirements
-
-Your solution must:
-
-- be runnable from the terminal
-- read the provided files from `dataset/`
-- produce a valid `output.csv`
-- include one prediction for every `message_id` in `dataset/messages.csv`
-- not use organizer-only files or hardcoded labels
-
-If you use API keys or secrets, read them from environment variables. Never hardcode secrets in the repo.
-
----
-
-## Evaluation
-
-Your `output.csv` will be compared against hidden ground-truth labels.
-
-The scoring will consider:
-
-- correctness of `action`
-- correctness of `message_type`
-- usefulness and consistency of `reason`
-- whether `evidence_message_ids` point to relevant historical messages
-- reasonable confidence calibration
-
-Strong systems will combine retrieval, structured metadata, behavioral history, safety checks, OCR/ASR handling, and contextual reasoning.
-
----
-
-## Chat Transcript Logging
-
-This repo includes an [`AGENTS.md`](./AGENTS.md) file for AI coding tools. It asks compatible tools to append conversation summaries to:
-
-| Platform | Path |
-|---|---|
-| macOS / Linux | `$HOME/hackerrank_orchestrate_august26/log.txt` |
-| Windows | `%USERPROFILE%\hackerrank_orchestrate_august26\log.txt` |
-
-Upload this log as your chat transcript at submission time. Do not paste secrets into the chat.
-
----
-
-## Submission
-
-Submit the following files as instructed by HackerRank:
-
-1. **Code zip**: full runnable solution, prompts/configs, README, and any evaluation files.
-2. **Predictions CSV**: final `output.csv` for all rows in `dataset/messages.csv`.
-3. **Chat transcript**: the `log.txt` described above.
-
-Before submitting, confirm:
-
-- `output.csv` has one row per row in `dataset/messages.csv`.
-- `output.csv` has the exact required columns in the exact required order.
-- Your runnable code and setup instructions are included in `code.zip`.
+No additional Markdown file is required by the runner. `README.md` is the
+runner entry point; the other checked-in Markdown files provide traceability and
+do not need special invocation.

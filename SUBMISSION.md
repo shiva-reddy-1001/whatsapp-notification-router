@@ -1,6 +1,6 @@
 # Submission Verification Manifest
 
-Generated for the V9 enhanced submission on 2026-08-02.
+Generated for the V9.1 submission-ready documentation checkpoint on 2026-08-02.
 
 ## Runtime contract
 
@@ -19,12 +19,15 @@ Generated for the V9 enhanced submission on 2026-08-02.
 - Cold-cache end-to-end run: passed, 110/110 rows written
 - Historical media enrichment: 23/23 historical assets
 - Final media cache: 33/33 assets non-empty, zero zero-quality entries
-- Unit/regression tests: 44 passed
+- Unit/regression tests: 46 passed
 - Solved calibration set: action `1.000`, type `1.000` on 30 rows
 - Output contract: exact columns/order, 110 unique IDs, allowed labels,
   finite confidence, non-empty reasons, valid same-user evidence
-- OpenAI judge dry preflight: passed using a non-secret placeholder key
+- OpenAI judge static configuration dry preflight: passed using a non-secret
+  placeholder key; no real-key end-to-end API result is claimed
 - Extracted-package compilation and tests: passed
+- README clean-machine, environment, judge-runner, troubleshooting, packaging,
+  results-scope, and three-artifact upload audit: passed
 
 Final `dataset/output.csv` SHA-256:
 
