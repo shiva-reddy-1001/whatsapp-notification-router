@@ -1,6 +1,6 @@
 # Architecture Guide
 
-This document describes the executable V7 router architecture. It complements
+This document describes the executable V8 router architecture. It complements
 [.design.md](./.design.md), which records the design rationale, and
 [DECISIONS.md](./DECISIONS.md), which tracks decisions still open to tuning.
 
@@ -29,9 +29,12 @@ flowchart LR
     D --> F["Feature extractor"]
     F --> G["Hybrid history retrieval"]
     X --> G
+    D --> T["Evidence-isolated type specialist"]
+    T <--> E
     G --> H["Feature and policy facts"]
-    H --> I["Structured provider classifier"]
+    H --> I["Joint action reasoning"]
     I <--> E
+    T --> J["Authoritative type + action composer"]
     I --> J
     J --> K["Output contract validator"]
     K --> L["dataset/output.csv"]
@@ -51,8 +54,8 @@ provider fails before processing rather than silently changing policy.
 | `embeddings.py` | Batch/cache normalized OpenAI or Ollama vectors | SQLite vectors |
 | `features.py` | Produce risk, priority, and noise/fatigue facts | Auditable case facts |
 | `retrieval.py` | Hybrid semantic/lexical/context/outcome ranker | Evidence IDs and rationale |
-| `prompting.py` | Define the versioned case-file prompt contract | `router-casefile-v3` |
-| `providers.py` | Call OpenAI or Ollama and validate structured JSON | Cached predictions |
+| `prompting.py` | Define isolated-type and joint-routing prompt contracts | Versioned prompts |
+| `providers.py` | Cache type, route jointly, compose authoritative result | Cached types/predictions |
 | `reliability.py` | Typed retries, backoff, jitter, deadlines | Safe error categories |
 | `output_writer.py` | Enforce the evaluator’s output contract | `output.csv` |
 
@@ -86,16 +89,24 @@ logic, media extraction, and model prompting independent and testable.
 
 ```mermaid
 flowchart TD
-    S["CaseFile with features and evidence"] --> P["Provider classification"]
-    P --> V{"Allowed labels, evidence, confidence?"}
-    V -->|"yes"| O["Prediction"]
-    V -->|"repairable"| E["Bounded retry policy"]
-    V -->|"terminal"| Z["Fail run"]
+    S["Current content + source facts"] --> T["Type specialist"]
+    T --> TV{"Valid semantic type?"}
+    C["Full CaseFile + history"] --> A["Joint action reasoning"]
+    A --> AV{"Valid action/evidence/confidence?"}
+    TV --> M["Compose authoritative type"]
+    AV --> M
+    M --> O["Prediction"]
+    TV -->|"repairable"| E["Bounded retry policy"]
+    AV -->|"repairable"| E
+    TV -->|"terminal"| Z["Fail run"]
+    AV -->|"terminal"| Z
 ```
 
-The prompt supplies safety facts but the provider owns the action decision. A
-model result is rejected if its action/type is outside the allowed vocabulary,
-its confidence is outside `[0, 1]`, or it cites an ID retrieval did not supply.
+The provider owns both decisions, but the views differ deliberately. Historical
+evidence text is excluded from type classification and included for action.
+The joint stage's tentative type is discarded during composition. A result is
+rejected if labels are outside the vocabulary, confidence is outside `[0, 1]`,
+or it cites an ID retrieval did not supply.
 
 ## Provider and fallback modes
 
@@ -220,6 +231,5 @@ whole-run budget.
   vector-service dependency until corpus size demonstrates a need.
 - The cache makes local runs resumable, but the provider is intentionally
   sequential to remain within the local 3–4 GB model budget.
-- Solved-sample type accuracy remains weaker than action accuracy. Prioritize
-  type-specific tuning for group messages and promotions, as recorded in
-  `DECISIONS.md`.
+- The five remaining solved-sample type misses are cross-category boundaries;
+  calibrate them on a larger validation set rather than adding sample rules.

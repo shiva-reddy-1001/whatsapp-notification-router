@@ -98,6 +98,10 @@ ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.main \
 ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.evaluation.main \
   --dataset-dir dataset --provider ollama
 
+# Diagnose isolated type accuracy and per-row type confusions.
+ROUTER_LLM_PROVIDER=ollama .venv/bin/python -m code.evaluation.main \
+  --dataset-dir dataset --provider ollama --type-only --show-errors
+
 # Fast deterministic unit tests.
 PYTHONPYCACHEPREFIX=/tmp/router-pycache .venv/bin/python -m unittest discover -v
 
@@ -124,6 +128,12 @@ Retries are bounded and config driven. `ROUTER_RETRY_MODE` accepts `none`,
 deadline, and the optional whole-run deadline are documented in `.env.example`.
 Only transient connection/timeout/429/5xx and repairable structured-output
 errors retry. Credentials and invalid models fail immediately.
+
+Classification uses two cached reasoning views. An evidence-isolated specialist
+assigns semantic `message_type` from current content and source context. The
+joint routing stage then uses personalized history to choose the action; its
+tentative type cannot overwrite the specialist result. This raised local solved-
+sample type accuracy from `0.367` to `0.833` without adding label rules.
 
 ### Architecture and operating notes
 

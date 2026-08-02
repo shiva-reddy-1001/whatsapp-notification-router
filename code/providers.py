@@ -8,7 +8,8 @@ from typing import Optional
 from .config import Settings
 from .cache import SQLiteCache
 from .models import ALLOWED_ACTIONS, ALLOWED_MESSAGE_TYPES, CaseFile, Prediction
-from .prompting import PROMPT_VERSION, build_casefile_prompt
+from .prompting import (PROMPT_VERSION, TYPE_PROMPT_VERSION,
+                        build_casefile_prompt, build_type_prompt)
 from .reliability import InvalidModelResponse, RetryPolicy, run_with_retry
 
 
@@ -50,6 +51,23 @@ def _parse(case: CaseFile, raw: str) -> Optional[Prediction]:
         return None
 
 
+def _parse_type(raw: str) -> Optional[str]:
+    try:
+        match = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+        data = json.loads(match.group(0) if match else raw)
+        kind = str(data["message_type"]).strip().lower()
+        confidence = float(data["confidence"])
+        return kind if kind in ALLOWED_MESSAGE_TYPES and 0 <= confidence <= 1 else None
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return None
+
+
+def _authoritative_type(prediction: Prediction, fixed_type: str) -> Prediction:
+    """Compose the specialist type with the joint stage's routing decision."""
+    prediction.message_type = fixed_type
+    return prediction
+
+
 class Classifier:
     def __init__(self, settings: Settings, cache: SQLiteCache = None):
         self.settings = settings
@@ -57,6 +75,7 @@ class Classifier:
         self.cache = cache
 
     def classify(self, case: CaseFile) -> Prediction:
+        fixed_type = self.classify_type(case)
         prompt = build_casefile_prompt(case)
         key = hashlib.sha256((self.name + self.settings.openai_model + self.settings.ollama_model + PROMPT_VERSION + prompt).encode()).hexdigest()
         cached = self.cache.get("predictions", key) if self.cache else None
@@ -66,10 +85,13 @@ class Classifier:
             repair = "" if not attempt else (
                 "\nA previous response was invalid. Return exactly the requested JSON schema; "
                 "confidence must be 0.0 to 1.0.")
-            result = _parse(case, self._call(prompt + repair))
+            result = _parse(case, self._call(prompt + repair,
+                                             self._classification_schema()))
             if not result:
                 raise InvalidModelResponse("provider returned invalid structured classification")
-            return result
+            # The evidence-isolated specialist is authoritative for type; the
+            # joint stage's tentative type is retained only as hidden reasoning.
+            return _authoritative_type(result, fixed_type)
 
         policy = RetryPolicy(self.settings.max_retries, self.settings.retry_mode,
                              self.settings.retry_base_seconds, self.settings.retry_max_seconds,
@@ -91,7 +113,54 @@ class Classifier:
                            "evidence_message_ids": result.evidence_message_ids})
         return result
 
-    def _call(self, prompt: str) -> str:
+    def classify_type(self, case: CaseFile) -> str:
+        prompt = build_type_prompt(case)
+        key = hashlib.sha256((self.name + self.settings.openai_model +
+                              self.settings.ollama_model + TYPE_PROMPT_VERSION +
+                              prompt).encode()).hexdigest()
+        cached = self.cache.get("message_types", key) if self.cache else None
+        if cached:
+            return str(cached["message_type"])
+
+        def operation(attempt: int) -> str:
+            repair = "" if not attempt else (
+                "\nA previous response was invalid. Return only message_type, reason, "
+                "and confidence in the requested JSON schema.")
+            kind = _parse_type(self._call(prompt + repair, self._type_schema()))
+            if not kind:
+                raise InvalidModelResponse("provider returned invalid structured message type")
+            return kind
+
+        policy = RetryPolicy(self.settings.max_retries, self.settings.retry_mode,
+                             self.settings.retry_base_seconds, self.settings.retry_max_seconds,
+                             self.settings.retry_jitter_seconds,
+                             self.settings.message_deadline_seconds)
+        try:
+            kind = run_with_retry(operation, policy)
+        except Exception as error:
+            raise RuntimeError("type classification failed for %s: %s" %
+                               (case.message.message_id, error)) from error
+        if self.cache:
+            self.cache.put("message_types", key, {"message_type": kind})
+        return kind
+
+    @staticmethod
+    def _classification_schema() -> dict:
+        return {"type": "object", "required": ["action", "message_type", "reason", "confidence", "evidence_message_ids"],
+                "properties": {"action": {"type": "string", "enum": sorted(ALLOWED_ACTIONS)},
+                               "message_type": {"type": "string", "enum": sorted(ALLOWED_MESSAGE_TYPES)},
+                               "reason": {"type": "string"},
+                               "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                               "evidence_message_ids": {"type": "array", "items": {"type": "string"}}}}
+
+    @staticmethod
+    def _type_schema() -> dict:
+        return {"type": "object", "required": ["message_type", "reason", "confidence"],
+                "properties": {"message_type": {"type": "string", "enum": sorted(ALLOWED_MESSAGE_TYPES)},
+                               "reason": {"type": "string"},
+                               "confidence": {"type": "number", "minimum": 0, "maximum": 1}}}
+
+    def _call(self, prompt: str, schema: Optional[dict] = None) -> str:
         if self.name == "openai":
             from openai import OpenAI
             client = OpenAI(timeout=self.settings.timeout_seconds, max_retries=0)
@@ -101,15 +170,10 @@ class Classifier:
         if self.name == "ollama":
             from ollama import Client
             client = Client(host=self.settings.ollama_base_url, timeout=self.settings.timeout_seconds)
-            schema = {"type": "object", "required": ["action", "message_type", "reason", "confidence", "evidence_message_ids"],
-                      "properties": {"action": {"type": "string", "enum": sorted(ALLOWED_ACTIONS)},
-                                     "message_type": {"type": "string", "enum": sorted(ALLOWED_MESSAGE_TYPES)},
-                                     "reason": {"type": "string"},
-                                     "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-                                     "evidence_message_ids": {"type": "array", "items": {"type": "string"}}}}
             response = client.chat(model=self.settings.ollama_model,
                                    messages=[{"role": "user", "content": prompt}],
-                                   format=schema, options={"temperature": self.settings.temperature})
+                                   format=schema or self._classification_schema(),
+                                   options={"temperature": self.settings.temperature})
             return response["message"]["content"]
         raise RuntimeError("unsupported provider")
 

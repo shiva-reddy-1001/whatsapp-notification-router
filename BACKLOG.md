@@ -28,6 +28,9 @@ Prioritized work that is intentionally not represented as completed behavior.
 
 ## Evaluation and submission
 
+- Calibrate the remaining type boundaries with a larger validation set:
+  urgent/event, business-update/promotion, spam/personal, safety-advisory/scam,
+  and unknown/personal. Do not add sample-ID or phrase-specific corrections.
 - Add regression thresholds for action/type accuracy by conversation and media
   type, plus evidence precision and confidence calibration.
 - Add clean-run tests for OpenAI and Ollama provider modes using recorded,

@@ -18,6 +18,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-dir", default="dataset")
     parser.add_argument("--provider", default="ollama", choices=["auto", "openai", "ollama"])
+    parser.add_argument("--show-errors", action="store_true",
+                        help="print per-message expected and actual labels")
+    parser.add_argument("--type-only", action="store_true",
+                        help="evaluate the isolated type stage without action calls")
     args = parser.parse_args()
     settings = Settings.from_environment(args.dataset_dir, provider=args.provider)
     cache = SQLiteCache(settings.cache_path)
@@ -32,6 +36,7 @@ def main() -> int:
     rows = read_csv(Path(args.dataset_dir) / "sample_messages.csv")
     action_ok = type_ok = 0
     errors = Counter()
+    type_slices = {}
     slices = {"conversation_type": {}, "expected_type": {}}
     for row in rows:
         message = as_message(row)
@@ -42,6 +47,17 @@ def main() -> int:
         apply_features(case)
         case.evidence = retrieve(case, dataset.history_by_user[message.user_id],
                                  settings.max_evidence, embeddings)
+        if args.type_only:
+            actual_type = classifier.classify_type(case)
+            type_ok += actual_type == row["message_type"]
+            bucket = type_slices.setdefault(row["message_type"], [0, 0])
+            bucket[0] += 1
+            bucket[1] += actual_type == row["message_type"]
+            if args.show_errors and actual_type != row["message_type"]:
+                print("TYPE_ERROR id=%s expected=%s actual=%s text=%r" %
+                      (message.message_id, row["message_type"], actual_type,
+                       case.content[:160].replace("\n", " ")))
+            continue
         prediction = classifier.classify(case)
         action_ok += prediction.action == row["action"]
         type_ok += prediction.message_type == row["message_type"]
@@ -53,7 +69,18 @@ def main() -> int:
             bucket[2] += prediction.message_type == row["message_type"]
         if prediction.action != row["action"] or prediction.message_type != row["message_type"]:
             errors[(row["action"], prediction.action)] += 1
+            if args.show_errors:
+                print("ERROR id=%s action=%s->%s type=%s->%s text=%r" %
+                      (message.message_id, row["action"], prediction.action,
+                       row["message_type"], prediction.message_type,
+                       case.content[:160].replace("\n", " ")))
     total = len(rows)
+    if args.type_only:
+        print("samples=%d type_accuracy=%.3f" % (total, type_ok / total))
+        for value, (count, correct) in sorted(type_slices.items()):
+            print("  %s n=%d type=%.3f" % (value, count, correct / count))
+        cache.close()
+        return 0
     print("samples=%d action_accuracy=%.3f type_accuracy=%.3f" %
           (total, action_ok / total, type_ok / total))
     for (expected, actual), count in errors.most_common(10):

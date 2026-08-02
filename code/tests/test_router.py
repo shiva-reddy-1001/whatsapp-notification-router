@@ -7,7 +7,7 @@ from code.models import CaseFile, Message, Prediction
 from code.output_writer import validate
 from code.retrieval import retrieve
 from code.features import extract
-from code.providers import _cached_prediction, _parse
+from code.providers import _authoritative_type, _cached_prediction, _parse
 
 
 def case(text, conversation="personal", **overrides):
@@ -23,6 +23,11 @@ class RouterTests(unittest.TestCase):
     def test_credential_request_has_a_scam_feature(self):
         self.assertIn("credential or pressured-payment language",
                       extract(case("Reply with the OTP to keep your account active."))["risk"])
+
+    def test_credential_safety_advisory_is_not_a_scam_feature(self):
+        facts = extract(case("We will never ask you to share OTP or payment details."))
+        self.assertNotIn("credential or pressured-payment language", facts["risk"])
+        self.assertIn("credential-safety advisory, not a credential request", facts["priority"])
 
     def test_opted_out_promotion_has_a_consent_feature(self):
         facts = extract(case("Limited sale, 50% off today!", conversation="business",
@@ -63,6 +68,14 @@ class RouterTests(unittest.TestCase):
         cached = {"message_id": "stale_id", "action": "digest", "message_type": "personal",
                   "reason": "Useful later.", "confidence": .7, "evidence_message_ids": []}
         self.assertEqual(_cached_prediction(current, cached).message_id, "incoming_1")
+
+    def test_action_stage_cannot_change_preclassified_type(self):
+        result = _parse(
+            case("School bus leaves early."),
+            '{"action":"notify","reason":"Timing changed.","confidence":0.9,'
+            '"evidence_message_ids":[],"message_type":"personal"}')
+        result = _authoritative_type(result, "event")
+        self.assertEqual(result.message_type, "event")
 
 
 if __name__ == "__main__":

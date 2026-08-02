@@ -16,3 +16,5 @@ after sample-set evaluation rather than silently becoming permanent behavior.
 | Ambiguity | conservative `digest` | Tune only with sample evidence; avoid unnecessary interrupts. |
 | Dataset size | 110 parsed target rows / 30 parsed solved sample rows | Corrected after using a CSV parser; multiline text makes shell line counts misleading. |
 | Dense ablation | action 0.500 vs lexical 0.467; type 0.367 in both | Dense retrieval gives a modest action gain on 30 samples; weights and prompt/type policy still need calibration. |
+| Type calibration | evidence-isolated type specialist + joint routing composer | Solved-sample type improved `0.367 → 0.833`; action improved `0.500 → 0.633` versus v7. Avoid sample-specific post-rules. |
+| Remaining type boundaries | 5/30: urgent/event, survey/promotion, telemarketing/personal, advisory/scam, unknown/personal | Prefer broader hidden-set generalization over hardcoding these five examples. |

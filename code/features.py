@@ -24,7 +24,13 @@ def extract(case: CaseFile) -> Dict[str, List[str]]:
     """Return facts; policy decides how much each fact should matter."""
     text, message = case.content.lower(), case.message
     risk, priority, noise = [], [], []
-    if any(matches(pattern, text) for pattern in SCAM_PATTERNS): risk.append("credential or pressured-payment language")
+    credential_advisory = matches(
+        r"\b(never|do not|don't|will not|won't)\b.{0,60}\b(ask|share|provide|send)\b.{0,40}"
+        r"\b(otp|password|pin|cvv|payment details|login code)\b", text)
+    if any(matches(pattern, text) for pattern in SCAM_PATTERNS) and not credential_advisory:
+        risk.append("credential or pressured-payment language")
+    if credential_advisory:
+        priority.append("credential-safety advisory, not a credential request")
     if message.forwarded_count >= 5: noise.append("high forwarding count")
     if matches(URGENT_PATTERNS, text): priority.append("explicit time-sensitive language")
     if message.conversation_type == "group" and case.membership.get("group_muted_by_user") == "1":
